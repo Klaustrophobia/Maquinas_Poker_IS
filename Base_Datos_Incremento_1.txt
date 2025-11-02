@@ -1,0 +1,93 @@
+CREATE TYPE estado_maquina AS ENUM ('Fuera de servicio', 'Mantenimiento', 'Funcionando');
+
+CREATE TYPE estado_orden AS ENUM ('Asignada', 'Proceso', 'Completada');
+
+CREATE TABLE usuarios (
+  id bigint primary key generated always as identity,
+  nombre_usuario text not null unique,
+  contraseña text not null,
+  rol text not null,
+  correo text not null unique,
+  fecha_creacion timestamp with time zone default now(),
+  identificador_unico text UNIQUE,
+  activo boolean DEFAULT true,
+  codigo_login text
+);
+
+CREATE TABLE maquinas (
+  id bigint primary key generated always as identity,
+  nombre text not null,
+  tipo text not null,
+  estado estado_maquina not null,
+  ubicacion text not null,
+  fecha_compra date,
+  fecha_garantia date
+);
+
+CREATE TABLE ordenes_reparacion (
+  id bigint primary key generated always as identity,
+  maquina_id bigint references maquinas (id),
+  cliente_id bigint references usuarios (id),
+  tecnico_id bigint references usuarios (id),
+  fecha_orden timestamp with time zone default now(),
+  estado estado_orden not null,
+  descripcion text,
+  fecha_finalizacion timestamp with time zone
+);
+
+CREATE TABLE contabilidad (
+  id bigint primary key generated always as identity,
+  fecha_transaccion timestamp with time zone default now(),
+  monto numeric not null,
+  tipo text not null,
+  descripcion text,
+  orden_reparacion_id bigint references ordenes_reparacion (id)
+);
+
+CREATE TABLE proveedores (
+  id bigint primary key generated always as identity,
+  nombre text not null,
+  informacion_contacto text,
+  direccion text,
+  fecha_creacion timestamp with time zone default now()
+);
+
+CREATE TABLE repuestos (
+  id bigint primary key generated always as identity,
+  nombre text not null,
+  proveedor_id bigint references proveedores (id),
+  cantidad int not null,
+  ubicacion text,
+  estado text not null
+);
+
+CREATE TABLE recibos (
+  id bigint primary key generated always as identity,
+  cliente_id bigint references usuarios (id),
+  maquina_id bigint references maquinas (id),
+  monto numeric not null,
+  fecha_recibo timestamp with time zone default now()
+);
+
+CREATE TABLE vales_pago (
+  id bigint primary key generated always as identity,
+  tecnico_id bigint references usuarios (id),
+  monto numeric not null,
+  fecha_vale timestamp with time zone default now()
+);
+
+CREATE TABLE orden_reparacion_repuestos (
+  id bigint primary key generated always as identity,
+  orden_reparacion_id bigint references ordenes_reparacion (id),
+  repuesto_id bigint references repuestos (id),
+  cantidad int not null
+);
+
+CREATE TABLE maquinas_cliente (
+  id bigint primary key generated always as identity,
+  cliente_id bigint references usuarios (id),
+  maquina_id bigint references maquinas (id),
+  estado text not null,
+  fecha_asignacion timestamp with time zone default now()
+);
+

@@ -1,0 +1,49 @@
+-- Función para generar el identificador único basado en el rol
+CREATE OR REPLACE FUNCTION generar_identificador_unico() RETURNS TRIGGER AS $$
+DECLARE
+  nuevo_identificador text;
+  contador int;
+BEGIN
+  -- Determinar el prefijo basado en el rol
+  IF NEW.rol = 'Administrador' THEN
+    nuevo_identificador := 'Admin';
+  ELSIF NEW.rol = 'Tecnico' THEN
+    nuevo_identificador := 'Tech';
+  ELSIF NEW.rol = 'Cliente' THEN
+    nuevo_identificador := 'Client';
+  ELSE
+    RAISE EXCEPTION 'Rol desconocido: %', NEW.rol;
+  END IF;
+
+  -- Contador para asegurar unicidad
+  SELECT COUNT(*) INTO contador FROM usuarios WHERE rol = NEW.rol;
+  nuevo_identificador := nuevo_identificador || (contador + 1)::text;
+
+  -- Asignar el identificador único
+  NEW.identificador_unico := nuevo_identificador;
+  RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+-- Trigger para asignar el identificador único
+CREATE TRIGGER trigger_identificador_unico
+BEFORE INSERT ON usuarios
+FOR EACH ROW
+EXECUTE FUNCTION generar_identificador_unico();
+
+-- Función para registrar cambios de estado en órdenes de reparación
+CREATE OR REPLACE FUNCTION registrar_cambio_estado() RETURNS TRIGGER AS $$
+BEGIN
+  IF NEW.estado IS DISTINCT FROM OLD.estado THEN
+    INSERT INTO auditoria_ordenes (orden_id, estado_anterior, estado_nuevo, fecha_cambio)
+    VALUES (OLD.id, OLD.estado, NEW.estado, now());
+  END IF;
+  RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+-- Trigger para registrar cambios de estado
+CREATE TRIGGER trigger_cambio_estado
+AFTER UPDATE ON ordenes_reparacion
+FOR EACH ROW
+EXECUTE FUNCTION registrar_cambio_estado();

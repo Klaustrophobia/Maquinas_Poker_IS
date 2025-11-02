@@ -1,0 +1,3 @@
+Dependencias
+npm install typeorm reflect-metadata pg bcrypt nodemailer jsonwebtoken
+
