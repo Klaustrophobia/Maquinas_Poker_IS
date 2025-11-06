@@ -1,3 +1,5 @@
 Dependencias Backend
 npm install typeorm reflect-metadata pg bcrypt nodemailer jsonwebtoken
 npm install cors
+npm install express
+npm install -D @types/express

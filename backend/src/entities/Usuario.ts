@@ -3,28 +3,28 @@ import { Entity, PrimaryGeneratedColumn, Column } from "typeorm";
 @Entity("usuarios")
 export class Usuario {
   @PrimaryGeneratedColumn("increment")
-  id: number;
+  id!: number;
 
   @Column({ unique: true })
-  nombre_usuario: string;
+  nombre_usuario!: string;
 
   @Column({ name: "contraseña" })
-  contraseña: string;
+  contraseña!: string;
 
   @Column()
-  rol: string;
+  rol!: string;
 
   @Column({ unique: true })
-  correo: string;
+  correo!: string;
 
   @Column({ type: "timestamp with time zone", default: () => "now()" })
-  fecha_creacion: Date;
+  fecha_creacion: Date = new Date();
 
   @Column({ nullable: true })
   identificador_unico?: string;
 
   @Column({ default: true })
-  activo: boolean;
+  activo: boolean = true;
 
   @Column({ nullable: true })
   codigo_login?: string;
