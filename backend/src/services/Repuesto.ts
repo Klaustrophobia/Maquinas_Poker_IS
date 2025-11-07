@@ -1,5 +1,4 @@
 import { Entity, PrimaryGeneratedColumn, Column, ManyToOne, JoinColumn } from "typeorm";
-import { Proveedor } from "./Proveedor";
 
 @Entity({ name: "repuestos" })
 export class Repuesto {
@@ -9,9 +8,9 @@ export class Repuesto {
   @Column({ type: "text", nullable: false })
   nombre!: string;
 
-  @ManyToOne(() => Proveedor, (proveedor) => proveedor.repuestos, { nullable: false, onDelete: "SET NULL" })
+  @ManyToOne("Proveedor", "repuestos", { nullable: false, onDelete: "SET NULL" })
   @JoinColumn({ name: "proveedor_id" })
-  proveedor!: Proveedor;
+  proveedor!: any;
 
   @Column({ type: "int", nullable: false })
   cantidad!: number;
