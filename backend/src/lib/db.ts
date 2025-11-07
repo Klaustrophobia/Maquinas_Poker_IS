@@ -1,7 +1,7 @@
 import "reflect-metadata";
 import { DataSource } from "typeorm";
 import { Usuario } from "../entities/Usuario";
-import { Proveedor } from "@/entities/proveedor";
+import { Proveedor } from "@/entities/Proveedor";
 import { Repuesto } from "@/entities/Repuesto";
 
 // Validar variables de entorno requeridas
