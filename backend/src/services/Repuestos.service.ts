@@ -1,6 +1,6 @@
 import { AppDataSource, initializeDatabase } from "@/lib/db";
 import { Repuesto } from "@/entities/Repuesto";
-import { Proveedor } from "@/entities/proveedor";
+import { Proveedor } from "@/entities/Proveedor";
 
 export class RepuestoService {
   private repuestoRepository = AppDataSource.getRepository(Repuesto);
