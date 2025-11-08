@@ -155,7 +155,7 @@ export default function VerifyPage() {
                 onChange={(e) => setCodigo(e.target.value.replace(/\D/g, '').slice(0, 6))}
                 required
                 maxLength={6}
-                className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all bg-white/50 text-center text-2xl font-bold tracking-widest"
+                className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all bg-white/50 text-center text-2xl font-bold tracking-widest text-black"
               />
             </div>
             <p className="text-xs text-gray-500 mt-2 text-center">
