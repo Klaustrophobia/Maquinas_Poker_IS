@@ -3,6 +3,7 @@ import { DataSource } from "typeorm";
 import { Usuario } from "../entities/Usuario";
 import { Proveedor } from "@/entities/Proveedor";
 import { Repuesto } from "@/entities/Repuesto";
+import { Maquina } from "@/entities/Maquina";
 
 // Validar variables de entorno requeridas
 const requiredEnvVars = ['DB_HOST', 'DB_PORT', 'DB_USERNAME', 'DB_PASSWORD', 'DB_NAME'];
@@ -29,7 +30,7 @@ export const AppDataSource = new DataSource({
   database: process.env.DB_NAME,
   synchronize: false,
   logging: process.env.NODE_ENV === "development",
-  entities: [Usuario, Proveedor, Repuesto],
+  entities: [Usuario, Proveedor, Repuesto, Maquina],
   extra: {
     ssl: process.env.NODE_ENV === "production" ? { rejectUnauthorized: false } : false,
   },
