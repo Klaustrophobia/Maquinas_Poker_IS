@@ -8,7 +8,7 @@ export async function POST(req: Request) {
     const { correo, contraseña } = await req.json();
 
     const controller = new AuthController();
-    const result = await controller.login(correo, contraseña);
+    const result = await controller.solicitarLogin(correo, contraseña);
 
     return NextResponse.json(result);
   } catch (err: any) {

@@ -30,17 +30,23 @@ export class AuthService {
   }
 
   async confirmarLogin(correo: string, codigo: string) {
+    // Validar que existe JWT_SECRET
+    if (!process.env.JWT_SECRET) {
+      throw new Error("Error de configuración: JWT_SECRET no está definido en variables de entorno");
+    }
+
     const usuario = await this.usuarioRepo.findByCorreo(correo);
     if (!usuario) throw new Error("Usuario no encontrado.");
+    if (!usuario.codigo_login) throw new Error("No hay un código de verificación pendiente.");
     if (usuario.codigo_login !== codigo) throw new Error("Código incorrecto.");
 
     usuario.codigo_login = null;
     await this.usuarioRepo.save(usuario);
 
-    // 🔹 Generar token JWT
+    // 🔹 Generar token JWT (ahora sabemos que JWT_SECRET existe)
     const token = jwt.sign(
       { id: usuario.id, rol: usuario.rol, correo: usuario.correo },
-      process.env.JWT_SECRET!,
+      process.env.JWT_SECRET,
       { expiresIn: "2h" }
     );
 

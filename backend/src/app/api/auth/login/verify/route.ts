@@ -1,62 +1,49 @@
 import { NextRequest, NextResponse } from "next/server";
 import { AppDataSource } from "@/lib/db";
-import { Usuario } from "@/entities/Usuario";
+import { AuthController } from "@/controllers/AuthController";
+import { applyCorsHeaders } from "@/lib/cors";
 
-// --- Configuración CORS ---
-const allowedOrigin = "http://localhost:3001";
+const tokenCookieName = "auth_token";
+const tokenTtlSeconds = 60 * 60 * 2;
 
-function setCORSHeaders(res: NextResponse) {
-  res.headers.set("Access-Control-Allow-Origin", allowedOrigin);
-  res.headers.set("Access-Control-Allow-Methods", "POST, OPTIONS");
-  res.headers.set("Access-Control-Allow-Headers", "Content-Type");
-  return res;
+export async function OPTIONS(req: NextRequest) {
+  return applyCorsHeaders(req, new NextResponse(null, { status: 204 }), "POST,OPTIONS");
 }
 
-// --- Manejo de preflight (OPTIONS) ---
-export async function OPTIONS() {
-  const res = new NextResponse(null, { status: 200 });
-  return setCORSHeaders(res);
-}
-
-// --- Manejo del POST real ---
 export async function POST(req: NextRequest) {
-  const body = await req.json();
-  const { correo, codigo_login } = body;
+  try {
+    const body = await req.json();
+    const { correo, codigo_login } = body;
 
-  if (!correo || !codigo_login) {
-    const res = NextResponse.json({ error: "Correo y código son requeridos" }, { status: 400 });
-    return setCORSHeaders(res);
+    if (!correo || !codigo_login) {
+      return applyCorsHeaders(req, NextResponse.json({ error: "Correo y código son requeridos" }, { status: 400 }), "POST,OPTIONS");
+    }
+
+    if (!AppDataSource.isInitialized) await AppDataSource.initialize();
+
+    const controller = new AuthController();
+    const result = await controller.confirmarLogin(correo, codigo_login);
+
+    const response = NextResponse.json({
+      message: result.message,
+      usuario: result.user,
+      token: result.token,
+    });
+
+    response.cookies.set({
+      name: tokenCookieName,
+      value: result.token,
+      httpOnly: true,
+      // cross-site cookie for frontend hosted on a different origin
+      secure: process.env.NODE_ENV === "production",
+      sameSite: process.env.NODE_ENV === "production" ? "none" : "lax",
+      maxAge: tokenTtlSeconds,
+      path: "/",
+    });
+
+    return applyCorsHeaders(req, response, "POST,OPTIONS");
+  } catch (error) {
+    const message = error instanceof Error ? error.message : "Error al procesar la solicitud";
+    return applyCorsHeaders(req, NextResponse.json({ error: message }, { status: 400 }), "POST,OPTIONS");
   }
-
-  if (!AppDataSource.isInitialized) await AppDataSource.initialize();
-
-  const userRepo = AppDataSource.getRepository(Usuario);
-  const user = await userRepo.findOne({ where: { correo } });
-
-  if (!user) {
-    const res = NextResponse.json({ error: "Usuario no encontrado" }, { status: 404 });
-    return setCORSHeaders(res);
-  }
-
-  if (user.codigo_login !== codigo_login) {
-    const res = NextResponse.json({ error: "Código incorrecto" }, { status: 401 });
-    return setCORSHeaders(res);
-  }
-
-  // Limpiar el código luego de usarlo
-  user.codigo_login = null;
-  await userRepo.save(user);
-
-  const res = NextResponse.json({
-    message: "Login exitoso",
-    usuario: {
-      id: user.id,
-      nombre_usuario: user.nombre_usuario,
-      rol: user.rol,
-      correo: user.correo,
-      identificador_unico: user.identificador_unico,
-    },
-  });
-
-  return setCORSHeaders(res);
 }
