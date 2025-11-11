@@ -1,6 +1,7 @@
 "use client";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { useAuth } from "../context/AuthContext"; // Ajusta la ruta según tu estructura
 
 export default function LoginPage() {
   const [correo, setCorreo] = useState("");
@@ -9,6 +10,7 @@ export default function LoginPage() {
   const [isLoading, setIsLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const router = useRouter();
+  const { login } = useAuth(); // Usamos el hook useAuth
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -27,7 +29,11 @@ export default function LoginPage() {
       const data = await res.json();
       
       if (res.ok) {
+        // Guardar en localStorage temporal para la verificación
         localStorage.setItem("correoLogin", correo);
+        
+        // NOTA: En este punto solo guardamos el correo temporalmente
+        // La autenticación completa se hará en verify/page.tsx después del código
         setMensaje("Código enviado a tu correo");
         setTimeout(() => router.push("/verify"), 1500);
       } else {

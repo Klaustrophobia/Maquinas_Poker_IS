@@ -10,7 +10,7 @@ export default function VerifyPage() {
   const [isLoading, setIsLoading] = useState(false);
   const [canResend, setCanResend] = useState(false);
   const [countdown, setCountdown] = useState(60);
-  const { setUsuario, setToken } = useAuth();
+  const { login } = useAuth(); // Usamos la función login del contexto
   const router = useRouter();
 
   useEffect(() => {
@@ -50,14 +50,26 @@ export default function VerifyPage() {
       const data = await res.json();
 
       if (res.ok) {
-        setUsuario(data.usuario);
-        setToken(data.token);
+        // Usamos la función login del contexto para guardar usuario y token
+        login(data.usuario, data.token);
+        
+        // Limpiar el correo temporal del localStorage
+        localStorage.removeItem("correoLogin");
+        
         setMensaje("¡Verificación exitosa! Redirigiendo...");
         
         setTimeout(() => {
-          if (data.usuario.rol === "Administrador") router.push("/admin/dashboard");
-          if (data.usuario.rol === "Tecnico") router.push("/tecnico/dashboard");
-          if (data.usuario.rol === "Cliente") router.push("/cliente/dashboard");
+          // Redirigir según el rol del usuario
+          if (data.usuario.rol === "Administrador") {
+            router.push("/admin/dashboard");
+          } else if (data.usuario.rol === "Tecnico") {
+            router.push("/tecnico");
+          } else if (data.usuario.rol === "Cliente") {
+            router.push("/cliente");
+          } else {
+            // Rol no reconocido, redirigir a una página por defecto
+            router.push("/");
+          }
         }, 1500);
       } else {
         setMensaje(data.error || "Código inválido");
@@ -89,7 +101,8 @@ export default function VerifyPage() {
         setCanResend(false);
         setCountdown(60);
       } else {
-        setMensaje("Error al reenviar el código");
+        const data = await res.json();
+        setMensaje(data.error || "Error al reenviar el código");
       }
     } catch (error) {
       setMensaje("Error de conexión");

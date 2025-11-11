@@ -1,6 +1,8 @@
 "use client";
 import { useState, useEffect } from "react";
 import { Menu, X, Home, Users, Package, Wrench, Truck, LogOut, Plus, Eye, Edit2, Trash2 } from "lucide-react";
+import { useAuth } from "@/app/context/AuthContext";
+import { useRouter } from "next/navigation";
 
 export default function AdminDashboardPage() {
   const [sidebarOpen, setSidebarOpen] = useState(true);
@@ -47,12 +49,12 @@ export default function AdminDashboardPage() {
   const [selectedMaquina, setSelectedMaquina] = useState(null);
   const [maquinaFormData, setMaquinaFormData] = useState({
     nombre: "",
-    modelo: "",
-    serie: "",
-    estado: "Activa"
+    tipo: "",
+    estado: "Fuera de servicio"
   });
 
-  const usuario = { nombre_usuario: "Admin", rol: "Administrador" };
+  const { usuario, logout } = useAuth();
+  const router = useRouter();
   const backendUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3000";
 
   const menuItems = [
@@ -186,7 +188,7 @@ export default function AdminDashboardPage() {
       });
       if (res.ok) {
         setShowAddMaquinaModal(false);
-        setMaquinaFormData({ nombre: "", modelo: "", serie: "", estado: "Activa" });
+        setMaquinaFormData({ nombre: "", tipo: "", estado: "Fuera de servicio" });
         fetchMaquinas();
       } else {
         alert("Error al crear la máquina");
@@ -213,7 +215,8 @@ export default function AdminDashboardPage() {
   };
 
   const handleLogout = () => {
-    console.log("Cerrar sesión");
+    logout();
+    router.push("/login");
   };
 
   const renderContent = () => {
@@ -666,13 +669,16 @@ export default function AdminDashboardPage() {
                 {menuItems.find(item => item.id === activeSection)?.label || "Dashboard"}
               </h1>
             </div>
-            <button
-              onClick={handleLogout}
-              className="px-4 py-2 bg-red-50 text-red-600 rounded-lg hover:bg-red-100 transition-colors font-medium text-sm flex items-center gap-2"
-            >
-              <LogOut className="w-4 h-4" />
-              Cerrar sesión
-            </button>
+            <div className="flex items-center gap-4">
+              <span className="text-sm text-gray-600">Bienvenido, {usuario?.nombre_usuario}</span>
+              <button
+                onClick={handleLogout}
+                className="px-4 py-2 bg-red-50 text-red-600 rounded-lg hover:bg-red-100 transition-colors font-medium text-sm flex items-center gap-2"
+              >
+                <LogOut className="w-4 h-4" />
+                Cerrar sesión
+              </button>
+            </div>
           </div>
         </header>
         <div className="p-8">{renderContent()}</div>
