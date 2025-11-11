@@ -21,9 +21,24 @@ export default function AdminDashboardPage() {
   const [repuestos, setRepuestos] = useState([]);
   const [loadingRepuestos, setLoadingRepuestos] = useState(false);
   
+  // Estados para modales de Máquinas
+  const [showAddMaquinaModal, setShowAddMaquinaModal] = useState(false);
+  const [showDetailMaquinaModal, setShowDetailMaquinaModal] = useState(false);
+  const [showEditMaquinaModal, setShowEditMaquinaModal] = useState(false);
+  const [selectedMaquina, setSelectedMaquina] = useState(null);
+  const [maquinaFormData, setMaquinaFormData] = useState({
+    nombre: "",
+    tipo: "",
+    estado: "Fuera de servicio",
+    ubicacion: "",
+    fecha_compra: "",
+    fecha_garantia: ""
+  });
+
   // Estados para modales de Repuestos
   const [showAddRepuestoModal, setShowAddRepuestoModal] = useState(false);
   const [showDetailRepuestoModal, setShowDetailRepuestoModal] = useState(false);
+  const [showEditRepuestoModal, setShowEditRepuestoModal] = useState(false);
   const [selectedRepuesto, setSelectedRepuesto] = useState(null);
   const [repuestoFormData, setRepuestoFormData] = useState({
     nombre: "",
@@ -36,21 +51,12 @@ export default function AdminDashboardPage() {
   // Estados para modales de Proveedores
   const [showAddProveedorModal, setShowAddProveedorModal] = useState(false);
   const [showDetailProveedorModal, setShowDetailProveedorModal] = useState(false);
+  const [showEditProveedorModal, setShowEditProveedorModal] = useState(false);
   const [selectedProveedor, setSelectedProveedor] = useState(null);
   const [proveedorFormData, setProveedorFormData] = useState({
     nombre: "",
     informacion_contacto: "",
     direccion: ""
-  });
-
-  // Estados para modales de Máquinas
-  const [showAddMaquinaModal, setShowAddMaquinaModal] = useState(false);
-  const [showDetailMaquinaModal, setShowDetailMaquinaModal] = useState(false);
-  const [selectedMaquina, setSelectedMaquina] = useState(null);
-  const [maquinaFormData, setMaquinaFormData] = useState({
-    nombre: "",
-    tipo: "",
-    estado: "Fuera de servicio"
   });
 
   const { usuario, logout } = useAuth();
@@ -133,25 +139,158 @@ export default function AdminDashboardPage() {
     }
   };
 
+  // Handlers para Máquinas
+  const handleAddMaquina = async (e) => {
+    e.preventDefault();
+    try {
+      const res = await fetch(`${backendUrl}/api/Maquina`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          nombre: maquinaFormData.nombre,
+          tipo: maquinaFormData.tipo,
+          estado: maquinaFormData.estado,
+          ubicacion: maquinaFormData.ubicacion,
+          fecha_compra: maquinaFormData.fecha_compra,
+          fecha_garantia: maquinaFormData.fecha_garantia,
+        }),
+      });
+      if (res.ok) {
+        setShowAddMaquinaModal(false);
+        setMaquinaFormData({ nombre: "", tipo: "", estado: "Fuera de servicio", ubicacion: "", fecha_compra: "", fecha_garantia: "" });
+        fetchMaquinas();
+      } else {
+        alert("Error al crear la máquina");
+      }
+    } catch (error) {
+      console.error("Error:", error);
+      alert("Error al crear la máquina");
+    }
+  };
+
+  const handleEditMaquina = async (e) => {
+    e.preventDefault();
+    try {
+      const res = await fetch(`${backendUrl}/api/Maquina/${selectedMaquina.id || selectedMaquina.id_maquina}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          nombre: maquinaFormData.nombre,
+          tipo: maquinaFormData.tipo,
+          estado: maquinaFormData.estado,
+          ubicacion: maquinaFormData.ubicacion,
+          fecha_compra: maquinaFormData.fecha_compra,
+          fecha_garantia: maquinaFormData.fecha_garantia,
+        }),
+      });
+      if (res.ok) {
+        setShowEditMaquinaModal(false);
+        setMaquinaFormData({ nombre: "", tipo: "", estado: "Fuera de servicio", ubicacion: "", fecha_compra: "", fecha_garantia: "" });
+        fetchMaquinas();
+      } else {
+        alert("Error al editar la máquina");
+      }
+    } catch (error) {
+      console.error("Error:", error);
+      alert("Error al editar la máquina");
+    }
+  };
+
+  const handleDeleteMaquina = async (id) => {
+    if (!confirm("¿Estás seguro de que deseas eliminar esta máquina?")) return;
+    try {
+      const res = await fetch(`${backendUrl}/api/Maquina/${id}`, {
+        method: "DELETE",
+      });
+      if (res.ok) {
+        fetchMaquinas();
+      } else {
+        alert("Error al eliminar la máquina");
+      }
+    } catch (error) {
+      console.error("Error:", error);
+      alert("Error al eliminar la máquina");
+    }
+  };
+
   // Handlers para Repuestos
   const handleAddRepuesto = async (e) => {
     e.preventDefault();
     try {
+      if (!repuestoFormData.proveedor_id) {
+        alert("Por favor selecciona un proveedor");
+        return;
+      }
       const res = await fetch(`${backendUrl}/api/repuestos`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(repuestoFormData),
+        body: JSON.stringify({
+          nombre: repuestoFormData.nombre,
+          proveedor_id: parseInt(repuestoFormData.proveedor_id, 10),
+          cantidad: parseInt(repuestoFormData.cantidad, 10) || 0,
+          ubicacion: repuestoFormData.ubicacion,
+          estado: repuestoFormData.estado,
+        }),
       });
       if (res.ok) {
         setShowAddRepuestoModal(false);
         setRepuestoFormData({ nombre: "", proveedor_id: "", cantidad: "", ubicacion: "", estado: "Disponible" });
         fetchRepuestos();
       } else {
-        alert("Error al crear el repuesto");
+        const errorData = await res.json();
+        alert(`Error al crear el repuesto: ${errorData.message || "Error desconocido"}`);
       }
     } catch (error) {
       console.error("Error:", error);
       alert("Error al crear el repuesto");
+    }
+  };
+
+  const handleEditRepuesto = async (e) => {
+    e.preventDefault();
+    try {
+      if (!repuestoFormData.proveedor_id) {
+        alert("Por favor selecciona un proveedor");
+        return;
+      }
+      const res = await fetch(`${backendUrl}/api/repuestos/${selectedRepuesto.id}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          nombre: repuestoFormData.nombre,
+          proveedor_id: parseInt(repuestoFormData.proveedor_id, 10),
+          cantidad: parseInt(repuestoFormData.cantidad, 10) || 0,
+          ubicacion: repuestoFormData.ubicacion,
+          estado: repuestoFormData.estado,
+        }),
+      });
+      if (res.ok) {
+        setShowEditRepuestoModal(false);
+        setRepuestoFormData({ nombre: "", proveedor_id: "", cantidad: "", ubicacion: "", estado: "Disponible" });
+        fetchRepuestos();
+      } else {
+        alert("Error al editar el repuesto");
+      }
+    } catch (error) {
+      console.error("Error:", error);
+      alert("Error al editar el repuesto");
+    }
+  };
+
+  const handleDeleteRepuesto = async (id) => {
+    if (!confirm("¿Estás seguro de que deseas eliminar este repuesto?")) return;
+    try {
+      const res = await fetch(`${backendUrl}/api/repuestos/${id}`, {
+        method: "DELETE",
+      });
+      if (res.ok) {
+        fetchRepuestos();
+      } else {
+        alert("Error al eliminar el repuesto");
+      }
+    } catch (error) {
+      console.error("Error:", error);
+      alert("Error al eliminar el repuesto");
     }
   };
 
@@ -177,25 +316,41 @@ export default function AdminDashboardPage() {
     }
   };
 
-  // Handlers para Máquinas
-  const handleAddMaquina = async (e) => {
+  const handleEditProveedor = async (e) => {
     e.preventDefault();
     try {
-      const res = await fetch(`${backendUrl}/api/Maquina`, {
-        method: "POST",
+      const res = await fetch(`${backendUrl}/api/Proveedor/${selectedProveedor.id}`, {
+        method: "PUT",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(maquinaFormData),
+        body: JSON.stringify(proveedorFormData),
       });
       if (res.ok) {
-        setShowAddMaquinaModal(false);
-        setMaquinaFormData({ nombre: "", tipo: "", estado: "Fuera de servicio" });
-        fetchMaquinas();
+        setShowEditProveedorModal(false);
+        setProveedorFormData({ nombre: "", informacion_contacto: "", direccion: "" });
+        fetchProveedores();
       } else {
-        alert("Error al crear la máquina");
+        alert("Error al editar el proveedor");
       }
     } catch (error) {
       console.error("Error:", error);
-      alert("Error al crear la máquina");
+      alert("Error al editar el proveedor");
+    }
+  };
+
+  const handleDeleteProveedor = async (id) => {
+    if (!confirm("¿Estás seguro de que deseas eliminar este proveedor?")) return;
+    try {
+      const res = await fetch(`${backendUrl}/api/Proveedor/${id}`, {
+        method: "DELETE",
+      });
+      if (res.ok) {
+        fetchProveedores();
+      } else {
+        alert("Error al eliminar el proveedor");
+      }
+    } catch (error) {
+      console.error("Error:", error);
+      alert("Error al eliminar el proveedor");
     }
   };
 
@@ -261,7 +416,7 @@ export default function AdminDashboardPage() {
             ) : (
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                 {maquinas.map((m, i) => (
-                  <div key={m.id_maquina || i} className="bg-white rounded-xl shadow-sm hover:shadow-md transition-all p-6 group">
+                  <div key={m.id || m.id_maquina || i} className="bg-white rounded-xl shadow-sm hover:shadow-md transition-all p-6 group">
                     <div className="flex items-center justify-between mb-4">
                       <div className="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center group-hover:scale-110 transition-transform">
                         <Wrench className="w-6 h-6 text-blue-600" />
@@ -273,13 +428,22 @@ export default function AdminDashboardPage() {
                     <h3 className="text-lg font-semibold text-gray-900 mb-2">{m.nombre || `Máquina #${i + 1}`}</h3>
                     <p className="text-sm text-gray-600 mb-1">Modelo: {m.modelo || "N/A"}</p>
                     <p className="text-sm text-gray-600 mb-4">Serie: {m.serie || "N/A"}</p>
-                    <button 
-                      onClick={() => { setSelectedMaquina(m); setShowDetailMaquinaModal(true); }}
-                      className="w-full bg-blue-50 text-blue-600 py-2 rounded-lg hover:bg-blue-100 transition-colors text-sm font-medium flex items-center justify-center gap-2"
-                    >
-                      <Eye className="w-4 h-4" />
-                      Ver detalles
-                    </button>
+                    <div className="flex gap-3">
+                      <button 
+                        onClick={() => { setSelectedMaquina(m); setShowDetailMaquinaModal(true); }}
+                        className="flex-1 bg-blue-50 text-blue-600 py-2 rounded-lg hover:bg-blue-100 transition-colors text-sm font-medium flex items-center justify-center gap-2"
+                      >
+                        <Eye className="w-4 h-4" />
+                        Ver detalles
+                      </button>
+                      <button
+                        onClick={() => handleDeleteMaquina(m.id || m.id_maquina)}
+                        className="w-12 flex items-center justify-center bg-red-600 hover:bg-red-700 text-white rounded-lg"
+                        title="Eliminar máquina"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </button>
+                    </div>
                   </div>
                 ))}
               </div>
@@ -394,7 +558,7 @@ export default function AdminDashboardPage() {
             ) : (
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 {proveedores.map((proveedor) => (
-                  <div key={proveedor.id_proveedor} className="bg-white rounded-xl shadow-sm hover:shadow-md transition-all p-6 group">
+                  <div key={proveedor.id} className="bg-white rounded-xl shadow-sm hover:shadow-md transition-all p-6 group">
                     <div className="flex items-start justify-between mb-4">
                       <div className="flex items-center gap-3">
                         <div className="w-14 h-14 bg-gradient-to-br from-purple-500 to-pink-500 rounded-xl flex items-center justify-center group-hover:scale-110 transition-transform">
@@ -402,7 +566,7 @@ export default function AdminDashboardPage() {
                         </div>
                         <div>
                           <h3 className="text-lg font-semibold text-gray-900">{proveedor.nombre}</h3>
-                          <p className="text-xs text-gray-500">ID: {proveedor.id_proveedor}</p>
+                          <p className="text-xs text-gray-500">ID: {proveedor.id}</p>
                         </div>
                       </div>
                       <span className="px-3 py-1 bg-green-100 text-green-700 rounded-full text-xs font-semibold">
@@ -410,14 +574,9 @@ export default function AdminDashboardPage() {
                       </span>
                     </div>
                     <div className="space-y-2 mb-4">
-                      {proveedor.correo && (
+                      {proveedor.informacion_contacto && (
                         <p className="text-sm text-gray-600 flex items-center gap-2">
-                          📧 <span className="truncate">{proveedor.correo}</span>
-                        </p>
-                      )}
-                      {proveedor.telefono && (
-                        <p className="text-sm text-gray-600 flex items-center gap-2">
-                          📞 {proveedor.telefono}
+                          📧 <span className="truncate">{proveedor.informacion_contacto}</span>
                         </p>
                       )}
                       {proveedor.direccion && (
@@ -582,7 +741,7 @@ export default function AdminDashboardPage() {
 
             <div className="bg-white rounded-xl shadow-sm p-6">
               <div className="flex items-center justify-between mb-6">
-                <h3 className="text-xl font-bold text-gray-900">Actividad Reciente</h3>
+                <h3 className="text-xl font-bold text-gray-900 mb-4">Actividad Reciente</h3>
                 <button className="text-sm text-blue-600 hover:text-blue-700 font-medium">
                   Ver todas →
                 </button>
@@ -684,6 +843,79 @@ export default function AdminDashboardPage() {
         <div className="p-8">{renderContent()}</div>
       </main>
 
+      {/* MODAL DETALLE PROVEEDOR */}
+      {showDetailProveedorModal && selectedProveedor && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-xl shadow-2xl w-full max-w-lg">
+            <div className="border-b border-gray-200 px-6 py-4 flex items-center justify-between">
+              <h3 className="text-xl font-bold text-gray-900">Detalles del Proveedor</h3>
+              <button onClick={() => setShowDetailProveedorModal(false)} className="text-gray-400 hover:text-gray-600">
+                <X className="w-6 h-6" />
+              </button>
+            </div>
+            <div className="p-6">
+              <div className="flex justify-center mb-6">
+                <div className="w-24 h-24 bg-gradient-to-br from-purple-500 to-pink-500 rounded-xl flex items-center justify-center">
+                  <Truck className="w-12 h-12 text-white" />
+                </div>
+              </div>
+              <h2 className="text-2xl font-bold text-gray-900 text-center mb-6">{selectedProveedor.nombre}</h2>
+              <div className="space-y-4">
+                <div className="bg-gray-50 rounded-lg p-4">
+                  <label className="text-sm font-medium text-gray-600">ID</label>
+                  <p className="text-gray-900 font-medium">{selectedProveedor.id}</p>
+                </div>
+                {selectedProveedor.informacion_contacto && (
+                  <div className="bg-gray-50 rounded-lg p-4">
+                    <label className="text-sm font-medium text-gray-600">Información Contacto</label>
+                    <p className="text-gray-900 font-medium">{selectedProveedor.informacion_contacto}</p>
+                  </div>
+                )}
+                {selectedProveedor.direccion && (
+                  <div className="bg-gray-50 rounded-lg p-4">
+                    <label className="text-sm font-medium text-gray-600">Dirección</label>
+                    <p className="text-gray-900 font-medium">{selectedProveedor.direccion}</p>
+                  </div>
+                )}
+              </div>
+              <div className="flex gap-3 mt-6">
+                <button
+                  onClick={() => setShowDetailProveedorModal(false)}
+                  className="flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50"
+                >
+                  Cerrar
+                </button>
+                <button 
+                  onClick={() => {
+                    setProveedorFormData({
+                      nombre: selectedProveedor.nombre,
+                      informacion_contacto: selectedProveedor.informacion_contacto,
+                      direccion: selectedProveedor.direccion,
+                    });
+                    setShowDetailProveedorModal(false);
+                    setShowEditProveedorModal(true);
+                  }}
+                  className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 flex items-center justify-center gap-2"
+                >
+                  <Edit2 className="w-4 h-4" />
+                  Editar
+                </button>
+                <button 
+                  onClick={() => {
+                    setShowDetailProveedorModal(false);
+                    handleDeleteProveedor(selectedProveedor.id);
+                  }}
+                  className="flex-1 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 flex items-center justify-center gap-2"
+                >
+                  <Trash2 className="w-4 h-4" />
+                  Eliminar
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* MODAL AGREGAR PROVEEDOR */}
       {showAddProveedorModal && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
@@ -702,7 +934,7 @@ export default function AdminDashboardPage() {
                   required
                   value={proveedorFormData.nombre}
                   onChange={(e) => setProveedorFormData({ ...proveedorFormData, nombre: e.target.value })}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 text-black"
                   placeholder="Nombre del proveedor"
                 />
               </div>
@@ -712,7 +944,7 @@ export default function AdminDashboardPage() {
                   type="text"
                   value={proveedorFormData.informacion_contacto}
                   onChange={(e) => setProveedorFormData({ ...proveedorFormData, informacion_contacto: e.target.value })}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 text-black"
                   placeholder="Email o teléfono"
                 />
               </div>
@@ -721,7 +953,7 @@ export default function AdminDashboardPage() {
                 <textarea
                   value={proveedorFormData.direccion}
                   onChange={(e) => setProveedorFormData({ ...proveedorFormData, direccion: e.target.value })}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 text-black"
                   rows={3}
                   placeholder="Dirección completa"
                 />
@@ -745,57 +977,60 @@ export default function AdminDashboardPage() {
         </div>
       )}
 
-      {/* MODAL DETALLE PROVEEDOR */}
-      {showDetailProveedorModal && selectedProveedor && (
+      {/* MODAL EDITAR PROVEEDOR */}
+      {showEditProveedorModal && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-xl shadow-2xl w-full max-w-lg">
+          <div className="bg-white rounded-xl shadow-2xl w-full max-w-md">
             <div className="border-b border-gray-200 px-6 py-4 flex items-center justify-between">
-              <h3 className="text-xl font-bold text-gray-900">Detalles del Proveedor</h3>
-              <button onClick={() => setShowDetailProveedorModal(false)} className="text-gray-400 hover:text-gray-600">
+              <h3 className="text-xl font-bold text-gray-900">Editar Proveedor</h3>
+              <button onClick={() => setShowEditProveedorModal(false)} className="text-gray-400 hover:text-gray-600">
                 <X className="w-6 h-6" />
               </button>
             </div>
-            <div className="p-6">
-              <div className="flex justify-center mb-6">
-                <div className="w-24 h-24 bg-gradient-to-br from-purple-500 to-pink-500 rounded-xl flex items-center justify-center">
-                  <Truck className="w-12 h-12 text-white" />
-                </div>
+            <div className="p-6 space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Nombre *</label>
+                <input
+                  type="text"
+                  required
+                  value={proveedorFormData.nombre}
+                  onChange={(e) => setProveedorFormData({ ...proveedorFormData, nombre: e.target.value })}
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 text-black"
+                  placeholder="Nombre del proveedor"
+                />
               </div>
-              <h2 className="text-2xl font-bold text-gray-900 text-center mb-6">{selectedProveedor.nombre}</h2>
-              <div className="space-y-4">
-                <div className="bg-gray-50 rounded-lg p-4">
-                  <label className="text-sm font-medium text-gray-600">ID</label>
-                  <p className="text-gray-900 font-medium">{selectedProveedor.id_proveedor}</p>
-                </div>
-                {selectedProveedor.correo && (
-                  <div className="bg-gray-50 rounded-lg p-4">
-                    <label className="text-sm font-medium text-gray-600">Email</label>
-                    <p className="text-gray-900 font-medium">{selectedProveedor.correo}</p>
-                  </div>
-                )}
-                {selectedProveedor.telefono && (
-                  <div className="bg-gray-50 rounded-lg p-4">
-                    <label className="text-sm font-medium text-gray-600">Teléfono</label>
-                    <p className="text-gray-900 font-medium">{selectedProveedor.telefono}</p>
-                  </div>
-                )}
-                {selectedProveedor.direccion && (
-                  <div className="bg-gray-50 rounded-lg p-4">
-                    <label className="text-sm font-medium text-gray-600">Dirección</label>
-                    <p className="text-gray-900 font-medium">{selectedProveedor.direccion}</p>
-                  </div>
-                )}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Información de Contacto</label>
+                <input
+                  type="text"
+                  value={proveedorFormData.informacion_contacto}
+                  onChange={(e) => setProveedorFormData({ ...proveedorFormData, informacion_contacto: e.target.value })}
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 text-black"
+                  placeholder="Email o teléfono"
+                />
               </div>
-              <div className="flex gap-3 mt-6">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Dirección</label>
+                <textarea
+                  value={proveedorFormData.direccion}
+                  onChange={(e) => setProveedorFormData({ ...proveedorFormData, direccion: e.target.value })}
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 text-black"
+                  rows={3}
+                  placeholder="Dirección completa"
+                />
+              </div>
+              <div className="flex gap-3 pt-4">
                 <button
-                  onClick={() => setShowDetailProveedorModal(false)}
+                  onClick={() => setShowEditProveedorModal(false)}
                   className="flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50"
                 >
-                  Cerrar
+                  Cancelar
                 </button>
-                <button className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 flex items-center justify-center gap-2">
-                  <Edit2 className="w-4 h-4" />
-                  Editar
+                <button
+                  onClick={handleEditProveedor}
+                  className="flex-1 px-4 py-2 bg-gradient-to-r from-blue-500 to-purple-600 text-white rounded-lg hover:shadow-lg"
+                >
+                  Guardar
                 </button>
               </div>
             </div>
@@ -821,28 +1056,30 @@ export default function AdminDashboardPage() {
                   required
                   value={maquinaFormData.nombre}
                   onChange={(e) => setMaquinaFormData({ ...maquinaFormData, nombre: e.target.value })}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 text-black"
                   placeholder="Nombre de la máquina"
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Modelo</label>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Tipo *</label>
                 <input
                   type="text"
-                  value={maquinaFormData.modelo}
-                  onChange={(e) => setMaquinaFormData({ ...maquinaFormData, modelo: e.target.value })}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
-                  placeholder="Modelo"
+                  required
+                  value={maquinaFormData.tipo}
+                  onChange={(e) => setMaquinaFormData({ ...maquinaFormData, tipo: e.target.value })}
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 text-black"
+                  placeholder="Tipo de máquina"
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Serie</label>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Ubicación *</label>
                 <input
                   type="text"
-                  value={maquinaFormData.serie}
-                  onChange={(e) => setMaquinaFormData({ ...maquinaFormData, serie: e.target.value })}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
-                  placeholder="Número de serie"
+                  required
+                  value={maquinaFormData.ubicacion}
+                  onChange={(e) => setMaquinaFormData({ ...maquinaFormData, ubicacion: e.target.value })}
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 text-black"
+                  placeholder="Ubicación"
                 />
               </div>
               <div>
@@ -851,12 +1088,32 @@ export default function AdminDashboardPage() {
                   required
                   value={maquinaFormData.estado}
                   onChange={(e) => setMaquinaFormData({ ...maquinaFormData, estado: e.target.value })}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 text-black"
                 >
-                  <option value="Activa">Activa</option>
+                  <option value="Fuera de servicio">Fuera de servicio</option>
                   <option value="Mantenimiento">Mantenimiento</option>
-                  <option value="Inactiva">Inactiva</option>
+                  <option value="Funcionando">Funcionando</option>
                 </select>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Fecha de Compra *</label>
+                <input
+                  type="date"
+                  required
+                  value={maquinaFormData.fecha_compra}
+                  onChange={(e) => setMaquinaFormData({ ...maquinaFormData, fecha_compra: e.target.value })}
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 text-black"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Fecha de Garantía *</label>
+                <input
+                  type="date"
+                  required
+                  value={maquinaFormData.fecha_garantia}
+                  onChange={(e) => setMaquinaFormData({ ...maquinaFormData, fecha_garantia: e.target.value })}
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 text-black"
+                />
               </div>
               <div className="flex gap-3 pt-4">
                 <button
@@ -897,23 +1154,33 @@ export default function AdminDashboardPage() {
               <div className="space-y-4">
                 <div className="bg-gray-50 rounded-lg p-4">
                   <label className="text-sm font-medium text-gray-600">ID</label>
-                  <p className="text-gray-900 font-medium">{selectedMaquina.id_maquina}</p>
+                  <p className="text-gray-900 font-medium">{selectedMaquina.id}</p>
                 </div>
                 <div className="grid grid-cols-2 gap-4">
                   <div className="bg-gray-50 rounded-lg p-4">
-                    <label className="text-sm font-medium text-gray-600">Modelo</label>
-                    <p className="text-gray-900 font-medium">{selectedMaquina.modelo || "N/A"}</p>
+                    <label className="text-sm font-medium text-gray-600">Tipo</label>
+                    <p className="text-gray-900 font-medium">{selectedMaquina.tipo || "N/A"}</p>
                   </div>
                   <div className="bg-gray-50 rounded-lg p-4">
-                    <label className="text-sm font-medium text-gray-600">Serie</label>
-                    <p className="text-gray-900 font-medium">{selectedMaquina.serie || "N/A"}</p>
+                    <label className="text-sm font-medium text-gray-600">Estado</label>
+                    <span className={`inline-block px-3 py-1 rounded-full text-sm font-semibold mt-2 ${getEstadoColor(selectedMaquina.estado)}`}>
+                      {selectedMaquina.estado}
+                    </span>
                   </div>
                 </div>
                 <div className="bg-gray-50 rounded-lg p-4">
-                  <label className="text-sm font-medium text-gray-600">Estado</label>
-                  <span className={`inline-block px-3 py-1 rounded-full text-sm font-semibold mt-2 ${getEstadoColor(selectedMaquina.estado)}`}>
-                    {selectedMaquina.estado || "Activa"}
-                  </span>
+                  <label className="text-sm font-medium text-gray-600">Ubicación</label>
+                  <p className="text-gray-900 font-medium">{selectedMaquina.ubicacion || "N/A"}</p>
+                </div>
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="bg-gray-50 rounded-lg p-4">
+                    <label className="text-sm font-medium text-gray-600">Fecha de Compra</label>
+                    <p className="text-gray-900 font-medium">{new Date(selectedMaquina.fecha_compra).toLocaleDateString() || "N/A"}</p>
+                  </div>
+                  <div className="bg-gray-50 rounded-lg p-4">
+                    <label className="text-sm font-medium text-gray-600">Fecha de Garantía</label>
+                    <p className="text-gray-900 font-medium">{new Date(selectedMaquina.fecha_garantia).toLocaleDateString() || "N/A"}</p>
+                  </div>
                 </div>
               </div>
               <div className="flex gap-3 mt-6">
@@ -923,9 +1190,127 @@ export default function AdminDashboardPage() {
                 >
                   Cerrar
                 </button>
-                <button className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 flex items-center justify-center gap-2">
+                <button 
+                  onClick={() => {
+                    setMaquinaFormData({
+                      nombre: selectedMaquina.nombre,
+                      tipo: selectedMaquina.tipo,
+                      estado: selectedMaquina.estado,
+                      ubicacion: selectedMaquina.ubicacion,
+                      fecha_compra: selectedMaquina.fecha_compra || "",
+                      fecha_garantia: selectedMaquina.fecha_garantia || "",
+                    });
+                    setShowDetailMaquinaModal(false);
+                    setShowEditMaquinaModal(true);
+                  }}
+                  className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 flex items-center justify-center gap-2"
+                >
                   <Edit2 className="w-4 h-4" />
                   Editar
+                </button>
+                <button 
+                  onClick={() => {
+                    setShowDetailMaquinaModal(false);
+                    handleDeleteMaquina(selectedMaquina.id);
+                  }}
+                  className="flex-1 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 flex items-center justify-center gap-2"
+                >
+                  <Trash2 className="w-4 h-4" />
+                  Eliminar
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* MODAL EDITAR MÁQUINA */}
+      {showEditMaquinaModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-xl shadow-2xl w-full max-w-md">
+            <div className="border-b border-gray-200 px-6 py-4 flex items-center justify-between">
+              <h3 className="text-xl font-bold text-gray-900">Editar Máquina</h3>
+              <button onClick={() => setShowEditMaquinaModal(false)} className="text-gray-400 hover:text-gray-600">
+                <X className="w-6 h-6" />
+              </button>
+            </div>
+            <div className="p-6 space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Nombre *</label>
+                <input
+                  type="text"
+                  required
+                  value={maquinaFormData.nombre}
+                  onChange={(e) => setMaquinaFormData({ ...maquinaFormData, nombre: e.target.value })}
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 text-black"
+                  placeholder="Nombre de la máquina"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Tipo *</label>
+                <input
+                  type="text"
+                  required
+                  value={maquinaFormData.tipo}
+                  onChange={(e) => setMaquinaFormData({ ...maquinaFormData, tipo: e.target.value })}
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 text-black"
+                  placeholder="Tipo de máquina"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Ubicación *</label>
+                <input
+                  type="text"
+                  required
+                  value={maquinaFormData.ubicacion}
+                  onChange={(e) => setMaquinaFormData({ ...maquinaFormData, ubicacion: e.target.value })}
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 text-black"
+                  placeholder="Ubicación"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Estado *</label>
+                <select
+                  required
+                  value={maquinaFormData.estado}
+                  onChange={(e) => setMaquinaFormData({ ...maquinaFormData, estado: e.target.value })}
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 text-black"
+                >
+                  <option value="Fuera de servicio">Fuera de servicio</option>
+                  <option value="Mantenimiento">Mantenimiento</option>
+                  <option value="Funcionando">Funcionando</option>
+                </select>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Fecha de Compra</label>
+                <input
+                  type="date"
+                  value={maquinaFormData.fecha_compra}
+                  onChange={(e) => setMaquinaFormData({ ...maquinaFormData, fecha_compra: e.target.value })}
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 text-black"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Fecha de Garantía</label>
+                <input
+                  type="date"
+                  value={maquinaFormData.fecha_garantia}
+                  onChange={(e) => setMaquinaFormData({ ...maquinaFormData, fecha_garantia: e.target.value })}
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 text-black"
+                />
+              </div>
+              <div className="flex gap-3 pt-4">
+                <button
+                  onClick={() => setShowEditMaquinaModal(false)}
+                  className="flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50"
+                >
+                  Cancelar
+                </button>
+                <button
+                  onClick={handleEditMaquina}
+                  className="flex-1 px-4 py-2 bg-gradient-to-r from-blue-500 to-purple-600 text-white rounded-lg hover:shadow-lg"
+                >
+                  Guardar
                 </button>
               </div>
             </div>
@@ -951,7 +1336,7 @@ export default function AdminDashboardPage() {
                   required
                   value={repuestoFormData.nombre}
                   onChange={(e) => setRepuestoFormData({ ...repuestoFormData, nombre: e.target.value })}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 text-black"
                   placeholder="Nombre del repuesto"
                 />
               </div>
@@ -961,11 +1346,11 @@ export default function AdminDashboardPage() {
                   required
                   value={repuestoFormData.proveedor_id}
                   onChange={(e) => setRepuestoFormData({ ...repuestoFormData, proveedor_id: e.target.value })}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 text-black"
                 >
                   <option value="">Seleccionar...</option>
                   {proveedores.map((p) => (
-                    <option key={p.id_proveedor} value={p.id_proveedor}>
+                    <option key={p.id} value={p.id}>
                       {p.nombre}
                     </option>
                   ))}
@@ -979,7 +1364,7 @@ export default function AdminDashboardPage() {
                   min="0"
                   value={repuestoFormData.cantidad}
                   onChange={(e) => setRepuestoFormData({ ...repuestoFormData, cantidad: e.target.value })}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 text-black"
                   placeholder="0"
                 />
               </div>
@@ -989,7 +1374,7 @@ export default function AdminDashboardPage() {
                   type="text"
                   value={repuestoFormData.ubicacion}
                   onChange={(e) => setRepuestoFormData({ ...repuestoFormData, ubicacion: e.target.value })}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 text-black"
                   placeholder="Ej: Estante A-12"
                 />
               </div>
@@ -999,7 +1384,7 @@ export default function AdminDashboardPage() {
                   required
                   value={repuestoFormData.estado}
                   onChange={(e) => setRepuestoFormData({ ...repuestoFormData, estado: e.target.value })}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 text-black"
                 >
                   <option value="Disponible">Disponible</option>
                   <option value="En uso">En uso</option>
@@ -1010,7 +1395,7 @@ export default function AdminDashboardPage() {
               <div className="flex gap-3 pt-4">
                 <button
                   onClick={() => setShowAddRepuestoModal(false)}
-                  className="flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50"
+                  className="flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 text-black"
                 >
                   Cancelar
                 </button>
@@ -1079,9 +1464,125 @@ export default function AdminDashboardPage() {
                 >
                   Cerrar
                 </button>
-                <button className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 flex items-center justify-center gap-2">
+                <button 
+                  onClick={() => {
+                    setRepuestoFormData({
+                      nombre: selectedRepuesto.nombre,
+                      proveedor_id: selectedRepuesto.proveedor_id,
+                      cantidad: selectedRepuesto.cantidad,
+                      ubicacion: selectedRepuesto.ubicacion,
+                      estado: selectedRepuesto.estado,
+                    });
+                    setShowDetailRepuestoModal(false);
+                    setShowEditRepuestoModal(true);
+                  }}
+                  className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 flex items-center justify-center gap-2"
+                >
                   <Edit2 className="w-4 h-4" />
                   Editar
+                </button>
+                <button 
+                  onClick={() => {
+                    setShowDetailRepuestoModal(false);
+                    handleDeleteRepuesto(selectedRepuesto.id);
+                  }}
+                  className="flex-1 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 flex items-center justify-center gap-2"
+                >
+                  <Trash2 className="w-4 h-4" />
+                  Eliminar
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* MODAL EDITAR REPUESTO */}
+      {showEditRepuestoModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-xl shadow-2xl w-full max-w-md">
+            <div className="border-b border-gray-200 px-6 py-4 flex items-center justify-between">
+              <h3 className="text-xl font-bold text-gray-900">Editar Repuesto</h3>
+              <button onClick={() => setShowEditRepuestoModal(false)} className="text-gray-400 hover:text-gray-600">
+                <X className="w-6 h-6" />
+              </button>
+            </div>
+            <div className="p-6 space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Nombre *</label>
+                <input
+                  type="text"
+                  required
+                  value={repuestoFormData.nombre}
+                  onChange={(e) => setRepuestoFormData({ ...repuestoFormData, nombre: e.target.value })}
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 text-black"
+                  placeholder="Nombre del repuesto"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Proveedor *</label>
+                <select
+                  required
+                  value={repuestoFormData.proveedor_id}
+                  onChange={(e) => setRepuestoFormData({ ...repuestoFormData, proveedor_id: e.target.value })}
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 text-black"
+                >
+                  <option value="">Seleccionar...</option>
+                  {proveedores.map((p) => (
+                    <option key={p.id} value={p.id}>
+                      {p.nombre}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Cantidad *</label>
+                <input
+                  type="number"
+                  required
+                  min="0"
+                  value={repuestoFormData.cantidad}
+                  onChange={(e) => setRepuestoFormData({ ...repuestoFormData, cantidad: e.target.value })}
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 text-black"
+                  placeholder="0"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Ubicación</label>
+                <input
+                  type="text"
+                  value={repuestoFormData.ubicacion}
+                  onChange={(e) => setRepuestoFormData({ ...repuestoFormData, ubicacion: e.target.value })}
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 text-black"
+                  placeholder="Ej: Estante A-12"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Estado *</label>
+                <select
+                  required
+                  value={repuestoFormData.estado}
+                  onChange={(e) => setRepuestoFormData({ ...repuestoFormData, estado: e.target.value })}
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 text-black"
+                >
+                  <option value="Disponible">Disponible</option>
+                  <option value="En uso">En uso</option>
+                  <option value="Agotado">Agotado</option>
+                  <option value="En pedido">En pedido</option>
+                </select>
+              </div>
+              <div className="flex gap-3 pt-4">
+                <button
+                  onClick={() => setShowEditRepuestoModal(false)}
+                  className="flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 text-black"
+                >
+                  Cancelar
+                </button>
+                <button
+                  onClick={handleEditRepuesto}
+                  className="flex-1 px-4 py-2 bg-gradient-to-r from-blue-500 to-purple-600 text-white rounded-lg hover:shadow-lg"
+                >
+                  Guardar
                 </button>
               </div>
             </div>
