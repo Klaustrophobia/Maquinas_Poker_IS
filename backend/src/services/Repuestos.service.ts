@@ -1,13 +1,11 @@
-import { AppDataSource, initializeDatabase } from "@/lib/db";
+import { RepuestoRepository } from "@/repositories/Repuestos.repository";
 import { Repuesto } from "@/entities/Repuesto";
-import { Proveedor } from "@/entities/Proveedor";
 
 export class RepuestoService {
-  private repuestoRepository = AppDataSource.getRepository(Repuesto);
-  private proveedorRepository = AppDataSource.getRepository(Proveedor);
+  private repuestoRepository: RepuestoRepository;
 
-  async initialize() {
-    await initializeDatabase();
+  constructor() {
+    this.repuestoRepository = new RepuestoRepository();
   }
 
   // CREATE
@@ -18,43 +16,17 @@ export class RepuestoService {
     ubicacion?: string;
     estado: string;
   }): Promise<Repuesto> {
-    await this.initialize();
-    
-    const proveedor = await this.proveedorRepository.findOne({
-      where: { id: repuestoData.proveedor_id }
-    });
-
-    if (!proveedor) {
-      throw new Error("Proveedor no encontrado");
-    }
-
-    const repuesto = this.repuestoRepository.create({
-      nombre: repuestoData.nombre,
-      cantidad: repuestoData.cantidad,
-      ubicacion: repuestoData.ubicacion,
-      estado: repuestoData.estado,
-      proveedor: proveedor
-    });
-
-    return await this.repuestoRepository.save(repuesto);
+    return await this.repuestoRepository.create(repuestoData);
   }
 
   // READ ALL
   async getAllRepuestos(): Promise<Repuesto[]> {
-    await this.initialize();
-    return await this.repuestoRepository.find({
-      relations: ["proveedor"],
-      order: { id: "DESC" }
-    });
+    return await this.repuestoRepository.findAll();
   }
 
   // READ BY ID
   async getRepuestoById(id: number): Promise<Repuesto | null> {
-    await this.initialize();
-    return await this.repuestoRepository.findOne({
-      where: { id },
-      relations: ["proveedor"]
-    });
+    return await this.repuestoRepository.findById(id);
   }
 
   // UPDATE
@@ -68,14 +40,10 @@ export class RepuestoService {
       proveedor_id?: number;
     }
   ): Promise<Repuesto | null> {
-    await this.initialize();
-
     const updatePayload: any = { ...updateData };
 
     if (updateData.proveedor_id) {
-      const proveedor = await this.proveedorRepository.findOne({
-        where: { id: updateData.proveedor_id }
-      });
+      const proveedor = await this.repuestoRepository.findProveedorById(updateData.proveedor_id);
 
       if (!proveedor) {
         throw new Error("Proveedor no encontrado");
@@ -86,23 +54,16 @@ export class RepuestoService {
     }
 
     await this.repuestoRepository.update(id, updatePayload);
-    return await this.getRepuestoById(id);
+    return await this.repuestoRepository.findById(id);
   }
 
   // DELETE
   async deleteRepuesto(id: number): Promise<boolean> {
-    await this.initialize();
-    const result = await this.repuestoRepository.delete(id);
-    return result.affected !== 0;
+    return await this.repuestoRepository.delete(id);
   }
 
   // Buscar repuestos por nombre
   async searchRepuestosByName(nombre: string): Promise<Repuesto[]> {
-    await this.initialize();
-    return await this.repuestoRepository
-      .createQueryBuilder("repuesto")
-      .leftJoinAndSelect("repuesto.proveedor", "proveedor")
-      .where("repuesto.nombre ILIKE :nombre", { nombre: `%${nombre}%` })
-      .getMany();
+    return await this.repuestoRepository.searchByName(nombre);
   }
 }

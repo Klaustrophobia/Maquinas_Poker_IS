@@ -1,11 +1,11 @@
-import { AppDataSource, initializeDatabase } from "@/lib/db";
+import { MaquinaRepository } from "@/repositories/Maquina.repository";
 import { Maquina, EstadoMaquina } from "@/entities/Maquina";
 
 export class MaquinaService {
-  private maquinaRepository = AppDataSource.getRepository(Maquina);
+  private maquinaRepository: MaquinaRepository;
 
-  async initialize() {
-    await initializeDatabase();
+  constructor() {
+    this.maquinaRepository = new MaquinaRepository();
   }
 
   // CREATE
@@ -17,25 +17,17 @@ export class MaquinaService {
     fecha_compra?: Date;
     fecha_garantia?: Date;
   }): Promise<Maquina> {
-    await this.initialize();
-    const maquina = this.maquinaRepository.create(maquinaData);
-    return await this.maquinaRepository.save(maquina);
+    return await this.maquinaRepository.create(maquinaData);
   }
 
   // READ ALL
   async getAllMaquinas(): Promise<Maquina[]> {
-    await this.initialize();
-    return await this.maquinaRepository.find({
-      order: { id: "DESC" }
-    });
+    return await this.maquinaRepository.findAll();
   }
 
   // READ BY ID
   async getMaquinaById(id: number): Promise<Maquina | null> {
-    await this.initialize();
-    return await this.maquinaRepository.findOne({
-      where: { id }
-    });
+    return await this.maquinaRepository.findById(id);
   }
 
   // UPDATE
@@ -50,42 +42,27 @@ export class MaquinaService {
       fecha_garantia?: Date;
     }
   ): Promise<Maquina | null> {
-    await this.initialize();
     await this.maquinaRepository.update(id, updateData);
-    return await this.getMaquinaById(id);
+    return await this.maquinaRepository.findById(id);
   }
 
   // DELETE
   async deleteMaquina(id: number): Promise<boolean> {
-    await this.initialize();
-    const result = await this.maquinaRepository.delete(id);
-    return result.affected !== 0;
+    return await this.maquinaRepository.delete(id);
   }
 
   // Búsqueda por estado
   async getMaquinasByEstado(estado: EstadoMaquina): Promise<Maquina[]> {
-    await this.initialize();
-    return await this.maquinaRepository.find({
-      where: { estado },
-      order: { id: "DESC" }
-    });
+    return await this.maquinaRepository.findByEstado(estado);
   }
 
   // Búsqueda por tipo
   async getMaquinasByTipo(tipo: string): Promise<Maquina[]> {
-    await this.initialize();
-    return await this.maquinaRepository.find({
-      where: { tipo },
-      order: { id: "DESC" }
-    });
+    return await this.maquinaRepository.findByTipo(tipo);
   }
 
   // Búsqueda por nombre
   async searchMaquinasByName(nombre: string): Promise<Maquina[]> {
-    await this.initialize();
-    return await this.maquinaRepository
-      .createQueryBuilder("maquina")
-      .where("maquina.nombre ILIKE :nombre", { nombre: `%${nombre}%` })
-      .getMany();
+    return await this.maquinaRepository.searchByName(nombre);
   }
 }
