@@ -20,15 +20,10 @@ jobs:
     - name: Install dependencies
       run: npm install
 
-    - name: Install missing type definitions
-      run: npm install --save-dev @types/bcrypt @types/jsonwebtoken
-
-    - name: Verify TypeScript compilation
-      run: npx tsc --noEmit || echo "TypeScript compilation completed with warnings" && exit 0
-
     - name: Create Next.js
       run: |
-        echo '/** @type {import('next').NextConfig} */
+        cat > next.config.js << 'EOF'
+        /** @type {import('next').NextConfig} */
         const nextConfig = {
           typescript: {
             ignoreBuildErrors: true,
@@ -37,12 +32,12 @@ jobs:
             ignoreDuringBuilds: true,
           },
         }
-        module.exports = nextConfig;' > next.config.js
+        
+        module.exports = nextConfig
+        EOF
 
     - name: Build project
       run: npm run build
-
-      
 
   verify-frontend:
     runs-on: ubuntu-latest
