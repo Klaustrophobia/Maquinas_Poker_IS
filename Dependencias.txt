@@ -7,7 +7,7 @@ npm install uuid
 npm install @types/uuid --save-dev
 npm install --save-dev @types/bcrypt @types/jsonwebtoken
 
-
+--importante hacer esto
 -- eliminen el trigger por lo del identificador unico:
 DROP TRIGGER IF EXISTS trigger_identificador_unico ON public.usuarios;
 DROP FUNCTION IF EXISTS public.generar_identificador_unico();
