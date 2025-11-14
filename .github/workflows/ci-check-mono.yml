@@ -1,0 +1,40 @@
+name: Verify Dependencies and Build
+
+on:
+  push:
+    branches: [usuariosComplete]  # Agregada la rama usuariosComplete
+  pull_request:
+    branches: [usuariosComplete]   # Agregada la rama usuariosComplete
+
+jobs:
+  verify-backend:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: backend
+
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+
+    - name: Install dependencies
+      run: npm install
+
+    - name: Verify TypeScript compilation
+      run: npx tsc --noEmit
+
+    - name: Build project
+      run: npm run build
+
+  verify-frontend:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: frontend
+
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+
+    - name: Install dependencies
+      run: npm ci
