@@ -10,4 +10,5 @@ export class AuthController {
   async confirmarLogin(correo: string, codigo: string) {
     return await this.service.confirmarLogin(correo, codigo);
   }
+  
 }
