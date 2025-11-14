@@ -3,6 +3,13 @@ npm install typeorm reflect-metadata pg bcrypt nodemailer jsonwebtoken
 npm install cors
 npm install express
 npm install -D @types/express
+npm install uuid
+npm install @types/uuid --save-dev
+
+
+-- eliminen el trigger por lo del identificador unico:
+DROP TRIGGER IF EXISTS trigger_identificador_unico ON public.usuarios;
+DROP FUNCTION IF EXISTS public.generar_identificador_unico();
 
 
 Dependencias Frontend
