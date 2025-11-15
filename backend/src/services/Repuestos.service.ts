@@ -40,7 +40,7 @@ export class RepuestoService {
       proveedor_id?: number;
     }
   ): Promise<Repuesto | null> {
-    const updatePayload: any = { ...updateData };
+    const updatePayload: Partial<Repuesto> & { proveedor_id?: number } = { ...updateData };
 
     if (updateData.proveedor_id) {
       const proveedor = await this.repuestoRepository.findProveedorById(updateData.proveedor_id);
