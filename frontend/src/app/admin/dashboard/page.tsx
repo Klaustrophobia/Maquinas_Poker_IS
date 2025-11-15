@@ -114,7 +114,7 @@ export default function AdminDashboardPage() {
     nombre_usuario: "",
     contraseña: "",
     correo: "",
-    rol: "Cliente",
+    rol: "",
     activo: "true" // Cambiado a string para los formularios
   });
 
@@ -1376,6 +1376,7 @@ export default function AdminDashboardPage() {
                   onChange={(e) => setUsuarioFormData({ ...usuarioFormData, rol: e.target.value })}
                   className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 text-black"
                 >
+                  <option> Asignar rol</option>
                   <option value="Cliente">Cliente</option>
                   <option value="Tecnico">Técnico</option>
                   <option value="Administrador">Administrador</option>
