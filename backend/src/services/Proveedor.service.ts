@@ -1,44 +1,51 @@
-import { AppDataSource, initializeDatabase } from "../lib/db";
-import { Proveedor } from "@/entities/Proveedor";
+import { ProveedorRepository } from "@/repositories/Proveedor.repository";
+import { Proveedor } from "../entities/Proveedor";
 
 export class ProveedorService {
-  private async getRepository() {
-    if (!AppDataSource.isInitialized) {
-      await initializeDatabase();
-    }
-    return AppDataSource.getRepository(Proveedor);
+  private proveedorRepo: ProveedorRepository;
+
+  constructor() {
+    this.proveedorRepo = new ProveedorRepository();
   }
 
   async obtenerTodosLosProveedores(): Promise<Proveedor[]> {
-    const repo = await this.getRepository();
-    return await repo.find();
+    return await this.proveedorRepo.findAll();
   }
 
   async obtenerProveedorPorId(id: number): Promise<Proveedor | null> {
-    const repo = await this.getRepository();
-    return await repo.findOneBy({ id });
+    return await this.proveedorRepo.findById(id);
   }
 
   async crearProveedor(data: Partial<Proveedor>): Promise<Proveedor> {
-    const repo = await this.getRepository();
-    const nuevoProveedor = repo.create(data);
-    return await repo.save(nuevoProveedor);
+    const proveedores = await this.proveedorRepo.findAll();
+    const existe = proveedores.find(
+      (p) => p.informacion_contacto === data.informacion_contacto
+    );
+
+    if (existe) {
+      throw new Error("Ya existe un proveedor con este correo electrónico");
+    }
+
+    return await this.proveedorRepo.create(data);
   }
 
-  async actualizarDatosProveedor(id: number, data: Partial<Proveedor>): Promise<Proveedor | null> {
-    const repo = await this.getRepository();
-    const proveedor = await repo.findOneBy({ id });
-    if (!proveedor) return null;
+  async actualizarDatosProveedor(
+    id: number,
+    data: Partial<Proveedor>
+  ): Promise<Proveedor> {
+    const proveedor = await this.proveedorRepo.findById(id);
+    if (!proveedor) {
+      throw new Error("Proveedor no encontrado");
+    }
 
-    repo.merge(proveedor, data);
-    return await repo.save(proveedor);
+    const actualizado = await this.proveedorRepo.update(id, data);
+    if (!actualizado) {
+      throw new Error("No se pudo actualizar el proveedor");
+    }
+    return actualizado;
   }
 
-  async eliminarProveedor(id: number): Promise<boolean> {
-    const repo = await this.getRepository();
-    
-    const resultado = await repo.delete(id);
-    return resultado.affected !== 0;
+  async buscarProveedorPorNombre(nombre: string): Promise<Proveedor | null> {
+    return await this.proveedorRepo.findByName(nombre);
   }
-
 }

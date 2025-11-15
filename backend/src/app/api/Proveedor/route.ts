@@ -1,5 +1,5 @@
 import { NextRequest } from "next/server";
-import { ProveedorController } from "@/controllers/Proveedor.controller";
+import { ProveedorController } from "../../../controllers/Proveedor.controller";
 
 const proveedorController = new ProveedorController();
 

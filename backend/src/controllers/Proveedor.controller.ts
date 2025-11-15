@@ -2,19 +2,24 @@ import { NextRequest, NextResponse } from "next/server";
 import { ProveedorService } from "../services/Proveedor.service";
 
 export class ProveedorController {
-  private proveedorService = new ProveedorService();
+  private proveedorService: ProveedorService;
+
+  constructor() {
+    this.proveedorService = new ProveedorService();
+  }
 
   async obtenerTodosLosProveedores() {
     try {
       const proveedores =
         await this.proveedorService.obtenerTodosLosProveedores();
       return NextResponse.json(proveedores, { status: 200 });
-    } catch {
-      return NextResponse.json(
-        { mensaje: "Error al obtener proveedores" },
-        { status: 500 }
-      );
-    }
+    } catch (error) {
+  console.error("Error en obtenerTodosLosProveedores:", error);
+  return NextResponse.json(
+    { mensaje: "Error al obtener proveedores", error: String(error) },
+    { status: 500 }
+  );
+}
   }
 
   async obtenerProveedorPorId(id: number) {
@@ -70,12 +75,11 @@ export class ProveedorController {
     }
   }
 
-  async eliminarProveedor(id: number) {
+  async buscarProveedorPorNombre(nombre: string) {
     try {
-      const eliminado = await this.proveedorService.eliminarProveedor(id);
-
-      if (eliminado) {
-        return new NextResponse(null, { status: 204 });
+      const proveedor = await this.proveedorService.buscarProveedorPorNombre(nombre);
+      if (proveedor) {
+        return NextResponse.json(proveedor, { status: 200 });
       } else {
         return NextResponse.json(
           { mensaje: "Proveedor no encontrado" },
@@ -84,9 +88,10 @@ export class ProveedorController {
       }
     } catch {
       return NextResponse.json(
-        { mensaje: "Error al eliminar proveedor" },
+        { mensaje: "Error al buscar proveedor" },
         { status: 500 }
       );
     }
   }
+
 }

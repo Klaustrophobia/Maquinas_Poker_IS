@@ -1,7 +1,7 @@
 import { Entity, PrimaryGeneratedColumn, Column } from "typeorm";
 
 export enum EstadoMaquina {
-  OFUNCIONANDO = 'Funcionando',
+  FUNCIONANDO = 'Funcionando',
   MANTENIMIENTO = 'Mantenimiento',
   FUERA_DE_SERVICIO = 'Fuera de servicio'
 }

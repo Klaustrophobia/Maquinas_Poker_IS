@@ -1,74 +1,28 @@
-import "reflect-metadata";
-import { DataSource } from "typeorm";
+import 'reflect-metadata';
+import { DataSource } from 'typeorm';
 import { Usuario } from "../entities/Usuario";
-import { Proveedor } from "@/entities/Proveedor";
-import { Repuesto } from "@/entities/Repuesto";
-import { Maquina } from "@/entities/Maquina";
-
-// Validar variables de entorno requeridas
-const requiredEnvVars = ['DB_HOST', 'DB_PORT', 'DB_USERNAME', 'DB_PASSWORD', 'DB_NAME'];
-for (const envVar of requiredEnvVars) {
-  if (!process.env[envVar]) {
-    throw new Error(`Variable de entorno ${envVar} no está definida`);
-  }
-}
-
-console.log('Configurando conexión a PostgreSQL con:', {
-  host: process.env.DB_HOST,
-  port: process.env.DB_PORT,
-  username: process.env.DB_USERNAME,
-  database: process.env.DB_NAME,
-  // No loguear password por seguridad
-});
+import { Proveedor } from "../entities/Proveedor";
+import { Repuesto } from "../entities/Repuesto";
 
 export const AppDataSource = new DataSource({
-  type: "postgres",
+  type: 'postgres',
   host: process.env.DB_HOST,
-  port: parseInt(process.env.DB_PORT || "5432"),
-  username: process.env.DB_USERNAME,
-  password: process.env.DB_PASSWORD,
-  database: process.env.DB_NAME,
+  port: Number(process.env.DB_PORT) || 5432,
+  username: process.env.DB_USER || 'soporte',
+  password: process.env.DB_PASS || 'password',
+  database: process.env.DB_NAME || 'Maquinas_poker',
   synchronize: false,
-  logging: process.env.NODE_ENV === "development",
-  entities: [Usuario, Proveedor, Repuesto, Maquina],
-  extra: {
-    ssl: process.env.NODE_ENV === "production" ? { rejectUnauthorized: false } : false,
-  },
-  poolSize: 10,
-  connectTimeoutMS: 30000,
+  entities: [Usuario, Proveedor, Repuesto],
+  logging: true,
 });
 
-let isInitialized = false;
-
-export async function initializeDatabase() {
-  try {
-    if (!isInitialized && !AppDataSource.isInitialized) {
-      console.log("Inicializando conexión a PostgreSQL...");
-      await AppDataSource.initialize();
-      isInitialized = true;
-      console.log("✅ Conexión a PostgreSQL establecida correctamente");
-    }
-    return AppDataSource;
-  } catch (error) {
-    console.error("❌ Error al conectar con PostgreSQL:", error);
-    
-    // Información detallada para debugging
-    if (error instanceof Error) {
-      console.error("Mensaje completo:", error.message);
-    }
-    
-    // Verificar que podemos acceder a las variables (sin mostrar password)
-    console.log("Configuración usada:", {
-      host: process.env.DB_HOST,
-      port: process.env.DB_PORT,
-      username: process.env.DB_USERNAME,
-      database: process.env.DB_NAME,
-      hasPassword: !!process.env.DB_PASSWORD
-    });
-    
-    throw error;
+export const initializeDatabase = async () => {
+  if (!AppDataSource.isInitialized) {
+    await AppDataSource.initialize();
+    console.log('Base de datos conectada');
   }
-}
+  return AppDataSource;
+};
 
 export async function getDatabaseConnection() {
   return await initializeDatabase();
