@@ -6,6 +6,8 @@ npm install -D @types/express
 npm install uuid
 npm install @types/uuid --save-dev
 npm install --save-dev @types/bcrypt @types/jsonwebtoken
+npm install --save-dev jest ts-jest @types/jest
+npm install --save-dev ts-node
 
 --importante hacer esto
 -- eliminen el trigger por lo del identificador unico:
