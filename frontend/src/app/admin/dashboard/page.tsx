@@ -68,7 +68,7 @@ export default function AdminDashboardPage() {
   const [busquedaUsuario, setBusquedaUsuario] = useState("");
 
   // Estados para filtros de Maquinas
-  const [filtroEstado, setFiltroEstado] = useState("todos");
+  const [filtroEstadoMaquina, setFiltroEstadoMaquina] = useState("todos");
   const [busquedaMaquinas, setBusquedaMaquinas] = useState("");
 
     // Estados para filtros de Proveedores
@@ -284,6 +284,32 @@ const repuestosFiltrados = repuestos
     const contarRepuestosPorEstado = (estado: string) => {
         return repuestos.filter((r: Repuesto) => r.estado === estado).length;
     };
+
+  // --- LÓGICA DE FILTRADO COMBINADO ---
+  const maquinasFiltradas = maquinas
+      // PASO 1: Filtrar por el texto de búsqueda (Busqueda)
+      .filter((maquina: Maquina) => {
+          const busqueda = busquedaMaquinas.toLowerCase();
+          // Buscar por nombre, tipo o ubicación
+          const coincideBusqueda = 
+              maquina.nombre.toLowerCase().includes(busqueda); //|| 
+              //maquina.tipo.toLowerCase().includes(busqueda) || 
+              //maquina.ubicacion.toLowerCase().includes(busqueda);
+          return coincideBusqueda;
+      })
+      // PASO 2: Filtrar por el estado seleccionado (Filtro por Estado)
+      .filter((maquina: Maquina) => {
+          if (filtroEstadoMaquina === "todos") {
+              return true; // Si es 'todos', pasa la máquina.
+          }
+          // Solo devuelve la máquina si su estado coincide con el filtro.
+          return maquina.estado === filtroEstadoMaquina;
+      });
+
+  // Funciones auxiliares
+  const contarMaquinasPorEstado = (estado: string) => {
+      return maquinas.filter((m: Maquina) => m.estado === estado).length;
+  };
 
   // Helper para convertir string a boolean
   const stringToBoolean = (value: string): boolean => {
@@ -678,6 +704,77 @@ const repuestosFiltrados = repuestos
               </button>
             </div>
 
+            {/* Filtros y Búsqueda */}
+            <div className="bg-white rounded-xl shadow-sm p-6 mb-6">
+              <div className="flex flex-col md:flex-row gap-4">
+                
+                {/* Búsqueda por nombre/tipo/ubicación */}
+                <div className="flex-1">
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Buscar máquina</label>
+                  <div className="relative">
+                    <Search className="w-5 h-5 text-gray-400 absolute left-3 top-1/2 transform -translate-y-1/2" />
+                    <input
+                      type="text"
+                      value={busquedaMaquinas}
+                      onChange={(e) => setBusquedaMaquinas(e.target.value)}
+                      className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-black"
+                      placeholder="Buscar por nombre..."
+                    />
+                  </div>
+                </div>
+                
+                {/* Filtro por estado (Enum: 'Fuera de servicio', 'Mantenimiento', 'Funcionando') */}
+                <div className="md:w-64">
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Filtrar por estado</label>
+                  <select
+                    value={filtroEstadoMaquina} 
+                    onChange={(e) => setFiltroEstadoMaquina(e.target.value)}
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-black"
+                  >
+                    <option value="todos">Todos los estados</option>
+                    <option value="Funcionando">Funcionando</option>
+                    <option value="Mantenimiento">Mantenimiento</option>
+                    <option value="Fuera de servicio">Fuera de servicio</option>
+                  </select>
+                </div>
+              </div>
+              
+              {/* Estadísticas de filtros */}
+              <div className="flex flex-wrap gap-4 mt-4 pt-4 border-t border-gray-200">
+                <div className="flex items-center gap-2">
+                  <span className="text-sm text-gray-600">Total:</span>
+                  <span className="px-2 py-1 bg-blue-100 text-blue-700 rounded-full text-xs font-semibold">
+                    {maquinas.length}
+                  </span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <span className="text-sm text-gray-600">Funcionando:</span>
+                  <span className="px-2 py-1 bg-green-100 text-green-700 rounded-full text-xs font-semibold">
+                    {contarMaquinasPorEstado("Funcionando")}
+                  </span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <span className="text-sm text-gray-600">Mantenimiento:</span>
+                  <span className="px-2 py-1 bg-yellow-100 text-yellow-700 rounded-full text-xs font-semibold">
+                    {contarMaquinasPorEstado("Mantenimiento")}
+                  </span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <span className="text-sm text-gray-600">Fuera de servicio:</span>
+                  <span className="px-2 py-1 bg-red-100 text-red-700 rounded-full text-xs font-semibold">
+                    {contarMaquinasPorEstado("Fuera de servicio")}
+                  </span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <span className="text-sm text-gray-600">Mostrando:</span>
+                  <span className="px-2 py-1 bg-gray-100 text-gray-700 rounded-full text-xs font-semibold">
+                    {maquinasFiltradas.length} de {maquinas.length}
+                  </span>
+                </div>
+              </div>
+            </div>
+
+            {/* Renderizado Condicional */}
             {loadingMaquinas ? (
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                 {[1, 2, 3].map((i) => (
@@ -689,6 +786,7 @@ const repuestosFiltrados = repuestos
                 ))}
               </div>
             ) : maquinas.length === 0 ? (
+              // Cuando no hay máquinas registradas
               <div className="bg-white rounded-xl shadow-sm p-12 text-center">
                 <Wrench className="w-16 h-16 text-gray-400 mx-auto mb-4" />
                 <h3 className="text-lg font-semibold text-gray-900 mb-2">No hay máquinas registradas</h3>
@@ -701,9 +799,26 @@ const repuestosFiltrados = repuestos
                   Agregar Primera Máquina
                 </button>
               </div>
+            ) : maquinasFiltradas.length === 0 ? (
+              // Cuando no hay resultados con los filtros aplicados
+              <div className="bg-white rounded-xl shadow-sm p-12 text-center">
+                <Wrench className="w-16 h-16 text-gray-400 mx-auto mb-4" />
+                <h3 className="text-lg font-semibold text-gray-900 mb-2">No se encontraron máquinas</h3>
+                <p className="text-gray-600 mb-6">No hay máquinas que coincidan con los filtros aplicados</p>
+                <button 
+                  onClick={() => {
+                    setBusquedaMaquinas("");
+                    setFiltroEstadoMaquina("todos");
+                  }}
+                  className="px-6 py-3 bg-gradient-to-r from-blue-500 to-purple-600 text-white rounded-lg hover:shadow-lg transition-all font-medium inline-flex items-center gap-2"
+                >
+                  Limpiar filtros
+                </button>
+              </div>
             ) : (
+              // Muestra SOLAMENTE las máquinas filtradas
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                {maquinas.map((m, i) => (
+                {maquinasFiltradas.map((m, i) => (
                   <div key={m.id || m.id_maquina || i} className="bg-white rounded-xl shadow-sm hover:shadow-md transition-all p-6 group">
                     <div className="flex items-center justify-between mb-4">
                       <div className="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center group-hover:scale-110 transition-transform">
@@ -714,8 +829,8 @@ const repuestosFiltrados = repuestos
                       </span>
                     </div>
                     <h3 className="text-lg font-semibold text-gray-900 mb-2">{m.nombre || `Máquina #${i + 1}`}</h3>
-                    <p className="text-sm text-gray-600 mb-1">Modelo: {m.modelo || "N/A"}</p>
-                    <p className="text-sm text-gray-600 mb-4">Serie: {m.serie || "N/A"}</p>
+                    <p className="text-sm text-gray-600 mb-1">Tipo: {m.tipo || "N/A"}</p>
+                    <p className="text-sm text-gray-600 mb-4">Ubicación: {m.ubicacion || "N/A"}</p>
                     <div className="flex gap-3">
                       <button 
                         onClick={() => { setSelectedMaquina(m); setShowDetailMaquinaModal(true); }}
