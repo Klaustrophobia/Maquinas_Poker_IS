@@ -66,6 +66,18 @@ export default function AdminDashboardPage() {
   // Estados para filtros de usuarios
   const [filtroRol, setFiltroRol] = useState("todos");
   const [busquedaUsuario, setBusquedaUsuario] = useState("");
+
+  // Estados para filtros de Maquinas
+  const [filtroEstadoMaquina, setFiltroEstadoMaquina] = useState("todos");
+  const [busquedaMaquinas, setBusquedaMaquinas] = useState("");
+
+    // Estados para filtros de Proveedores
+  // const [filtroEstado, setFiltroEstado] = useState("todos");
+  const [busquedaProveedores, setBusquedaProveedores] = useState("");
+
+    // Estados para filtros de Repuestos
+  const [filtroEstadoR, setFiltroEstadoR] = useState("todos");
+  const [busquedaRepuestos, setBusquedaRepuestos] = useState("");
   
   // Estados para modales de Máquinas
   const [showAddMaquinaModal, setShowAddMaquinaModal] = useState(false);
@@ -240,6 +252,63 @@ export default function AdminDashboardPage() {
     const count = usuarios.filter((user: Usuario) => user.rol === rol).length;
     console.log(`Contando ${rol}: ${count}`); // Debug
     return count;
+  };
+
+  // Filtrar proveedor según búsqueda
+  const proveedoresFiltrados = proveedores.filter((proveedor: Proveedor) => {
+    const coincideBusqueda = proveedor.nombre?.toLowerCase().includes(busquedaProveedores.toLowerCase());
+    return coincideBusqueda;
+  });
+
+// Filtrar repuestos según búsqueda
+const repuestosFiltrados = repuestos
+    // PASO 1: Filtrar por el texto de búsqueda (Busqueda)
+    .filter((repuesto: Repuesto) => {
+        const busqueda = busquedaRepuestos.toLowerCase();
+        const coincideBusqueda = 
+            repuesto.nombre.toLowerCase().includes(busqueda); //|| 
+            // repuesto.ubicacion?.toLowerCase().includes(busqueda) || 
+            // repuesto.proveedor?.nombre.toLowerCase().includes(busqueda);
+        return coincideBusqueda;
+    })
+  //Filtrar por el estado seleccionado
+    .filter((repuesto: Repuesto) => {
+        if (filtroEstadoR === "todos") {
+            return true; // Si es 'todos', pasa el repuesto.
+        }
+        // Solo devuelve el repuesto si su estado coincide con el filtro.
+        return repuesto.estado === filtroEstadoR;
+    });
+
+  // Contar repuesto por estado para las estadísticas del filtro - CORREGIDO
+    const contarRepuestosPorEstado = (estado: string) => {
+        return repuestos.filter((r: Repuesto) => r.estado === estado).length;
+    };
+
+  // --- LÓGICA DE FILTRADO COMBINADO ---
+  const maquinasFiltradas = maquinas
+      // PASO 1: Filtrar por el texto de búsqueda (Busqueda)
+      .filter((maquina: Maquina) => {
+          const busqueda = busquedaMaquinas.toLowerCase();
+          // Buscar por nombre, tipo o ubicación
+          const coincideBusqueda = 
+              maquina.nombre.toLowerCase().includes(busqueda); //|| 
+              //maquina.tipo.toLowerCase().includes(busqueda) || 
+              //maquina.ubicacion.toLowerCase().includes(busqueda);
+          return coincideBusqueda;
+      })
+      // PASO 2: Filtrar por el estado seleccionado (Filtro por Estado)
+      .filter((maquina: Maquina) => {
+          if (filtroEstadoMaquina === "todos") {
+              return true; // Si es 'todos', pasa la máquina.
+          }
+          // Solo devuelve la máquina si su estado coincide con el filtro.
+          return maquina.estado === filtroEstadoMaquina;
+      });
+
+  // Funciones auxiliares
+  const contarMaquinasPorEstado = (estado: string) => {
+      return maquinas.filter((m: Maquina) => m.estado === estado).length;
   };
 
   // Helper para convertir string a boolean
@@ -635,6 +704,77 @@ export default function AdminDashboardPage() {
               </button>
             </div>
 
+            {/* Filtros y Búsqueda */}
+            <div className="bg-white rounded-xl shadow-sm p-6 mb-6">
+              <div className="flex flex-col md:flex-row gap-4">
+                
+                {/* Búsqueda por nombre/tipo/ubicación */}
+                <div className="flex-1">
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Buscar máquina</label>
+                  <div className="relative">
+                    <Search className="w-5 h-5 text-gray-400 absolute left-3 top-1/2 transform -translate-y-1/2" />
+                    <input
+                      type="text"
+                      value={busquedaMaquinas}
+                      onChange={(e) => setBusquedaMaquinas(e.target.value)}
+                      className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-black"
+                      placeholder="Buscar por nombre..."
+                    />
+                  </div>
+                </div>
+                
+                {/* Filtro por estado (Enum: 'Fuera de servicio', 'Mantenimiento', 'Funcionando') */}
+                <div className="md:w-64">
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Filtrar por estado</label>
+                  <select
+                    value={filtroEstadoMaquina} 
+                    onChange={(e) => setFiltroEstadoMaquina(e.target.value)}
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-black"
+                  >
+                    <option value="todos">Todos los estados</option>
+                    <option value="Funcionando">Funcionando</option>
+                    <option value="Mantenimiento">Mantenimiento</option>
+                    <option value="Fuera de servicio">Fuera de servicio</option>
+                  </select>
+                </div>
+              </div>
+              
+              {/* Estadísticas de filtros */}
+              <div className="flex flex-wrap gap-4 mt-4 pt-4 border-t border-gray-200">
+                <div className="flex items-center gap-2">
+                  <span className="text-sm text-gray-600">Total:</span>
+                  <span className="px-2 py-1 bg-blue-100 text-blue-700 rounded-full text-xs font-semibold">
+                    {maquinas.length}
+                  </span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <span className="text-sm text-gray-600">Funcionando:</span>
+                  <span className="px-2 py-1 bg-green-100 text-green-700 rounded-full text-xs font-semibold">
+                    {contarMaquinasPorEstado("Funcionando")}
+                  </span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <span className="text-sm text-gray-600">Mantenimiento:</span>
+                  <span className="px-2 py-1 bg-yellow-100 text-yellow-700 rounded-full text-xs font-semibold">
+                    {contarMaquinasPorEstado("Mantenimiento")}
+                  </span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <span className="text-sm text-gray-600">Fuera de servicio:</span>
+                  <span className="px-2 py-1 bg-red-100 text-red-700 rounded-full text-xs font-semibold">
+                    {contarMaquinasPorEstado("Fuera de servicio")}
+                  </span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <span className="text-sm text-gray-600">Mostrando:</span>
+                  <span className="px-2 py-1 bg-gray-100 text-gray-700 rounded-full text-xs font-semibold">
+                    {maquinasFiltradas.length} de {maquinas.length}
+                  </span>
+                </div>
+              </div>
+            </div>
+
+            {/* Renderizado Condicional */}
             {loadingMaquinas ? (
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                 {[1, 2, 3].map((i) => (
@@ -646,6 +786,7 @@ export default function AdminDashboardPage() {
                 ))}
               </div>
             ) : maquinas.length === 0 ? (
+              // Cuando no hay máquinas registradas
               <div className="bg-white rounded-xl shadow-sm p-12 text-center">
                 <Wrench className="w-16 h-16 text-gray-400 mx-auto mb-4" />
                 <h3 className="text-lg font-semibold text-gray-900 mb-2">No hay máquinas registradas</h3>
@@ -658,9 +799,26 @@ export default function AdminDashboardPage() {
                   Agregar Primera Máquina
                 </button>
               </div>
+            ) : maquinasFiltradas.length === 0 ? (
+              // Cuando no hay resultados con los filtros aplicados
+              <div className="bg-white rounded-xl shadow-sm p-12 text-center">
+                <Wrench className="w-16 h-16 text-gray-400 mx-auto mb-4" />
+                <h3 className="text-lg font-semibold text-gray-900 mb-2">No se encontraron máquinas</h3>
+                <p className="text-gray-600 mb-6">No hay máquinas que coincidan con los filtros aplicados</p>
+                <button 
+                  onClick={() => {
+                    setBusquedaMaquinas("");
+                    setFiltroEstadoMaquina("todos");
+                  }}
+                  className="px-6 py-3 bg-gradient-to-r from-blue-500 to-purple-600 text-white rounded-lg hover:shadow-lg transition-all font-medium inline-flex items-center gap-2"
+                >
+                  Limpiar filtros
+                </button>
+              </div>
             ) : (
+              // Muestra SOLAMENTE las máquinas filtradas
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                {maquinas.map((m, i) => (
+                {maquinasFiltradas.map((m, i) => (
                   <div key={m.id || m.id_maquina || i} className="bg-white rounded-xl shadow-sm hover:shadow-md transition-all p-6 group">
                     <div className="flex items-center justify-between mb-4">
                       <div className="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center group-hover:scale-110 transition-transform">
@@ -671,8 +829,8 @@ export default function AdminDashboardPage() {
                       </span>
                     </div>
                     <h3 className="text-lg font-semibold text-gray-900 mb-2">{m.nombre || `Máquina #${i + 1}`}</h3>
-                    <p className="text-sm text-gray-600 mb-1">Modelo: {m.modelo || "N/A"}</p>
-                    <p className="text-sm text-gray-600 mb-4">Serie: {m.serie || "N/A"}</p>
+                    <p className="text-sm text-gray-600 mb-1">Tipo: {m.tipo || "N/A"}</p>
+                    <p className="text-sm text-gray-600 mb-4">Ubicación: {m.ubicacion || "N/A"}</p>
                     <div className="flex gap-3">
                       <button 
                         onClick={() => { setSelectedMaquina(m); setShowDetailMaquinaModal(true); }}
@@ -926,7 +1084,36 @@ export default function AdminDashboardPage() {
               </button>
             </div>
 
+            {/* Filtros y Búsqueda */}
+            <div className="bg-white rounded-xl shadow-sm p-6 mb-6">
+              <div className="flex flex-col md:flex-row gap-4 items-center">
+                {/* Búsqueda por nombre */}
+                <div className="flex-1">
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Buscar proveedor</label>
+                  <div className="relative">
+                    <Search className="w-5 h-5 text-gray-400 absolute left-3 top-1/2 transform -translate-y-1/2" />
+                    <input
+                      type="text"
+                      value={busquedaProveedores}
+                      onChange={(e) => setBusquedaProveedores(e.target.value)}
+                      className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-black"
+                      placeholder="Buscar por nombre..."
+                    />
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-2 mt-auto">
+                  <span className="text-sm text-gray-600">Mostrando:</span>
+                  <span className="px-2 py-1 bg-gray-100 text-gray-700 rounded-full text-xs font-semibold">
+                    {proveedoresFiltrados.length} de {proveedores.length}
+                  </span>
+                </div>
+              </div>
+            </div>
+
+            {/* Renderizado Condicional */}
             {loadingProveedores ? (
+              // Estado de Carga (Skeleton/Pulse)
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 {[1, 2, 3, 4].map((i) => (
                   <div key={i} className="bg-white rounded-xl shadow-sm p-6 animate-pulse">
@@ -941,6 +1128,7 @@ export default function AdminDashboardPage() {
                 ))}
               </div>
             ) : proveedores.length === 0 ? (
+              // Sin proveedores en el sistema
               <div className="bg-white rounded-xl shadow-sm p-12 text-center">
                 <Truck className="w-16 h-16 text-gray-400 mx-auto mb-4" />
                 <h3 className="text-lg font-semibold text-gray-900 mb-2">No hay proveedores registrados</h3>
@@ -953,9 +1141,25 @@ export default function AdminDashboardPage() {
                   Agregar Proveedor
                 </button>
               </div>
+            ) : proveedoresFiltrados.length === 0 ? (
+              // Sin resultados para la búsqueda actual (Nuevo estado añadido)
+              <div className="bg-white rounded-xl shadow-sm p-12 text-center">
+                <Truck className="w-16 h-16 text-gray-400 mx-auto mb-4" />
+                <h3 className="text-lg font-semibold text-gray-900 mb-2">No se encontraron proveedores</h3>
+                <p className="text-gray-600 mb-6">Ningún proveedor coincide con el término de búsqueda.</p>
+                <button 
+                  onClick={() => {
+                    setBusquedaProveedores(""); // Limpia el filtro para volver a verlos todos
+                  }}
+                  className="px-6 py-3 bg-gradient-to-r from-blue-500 to-purple-600 text-white rounded-lg hover:shadow-lg transition-all font-medium inline-flex items-center gap-2"
+                >
+                  Limpiar búsqueda
+                </button>
+              </div>
             ) : (
+              // Muestra los proveedores filtrados
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                {proveedores.map((proveedor) => (
+                {proveedoresFiltrados.map((proveedor) => ( // <-- 🎯 CAMBIO CLAVE: Usar proveedoresFiltrados
                   <div key={proveedor.id} className="bg-white rounded-xl shadow-sm hover:shadow-md transition-all p-6 group">
                     <div className="flex items-start justify-between mb-4">
                       <div className="flex items-center gap-3">
@@ -1011,7 +1215,90 @@ export default function AdminDashboardPage() {
               </button>
             </div>
 
+            {/* Filtros y Búsqueda */}
+            <div className="bg-white rounded-xl shadow-sm p-6 mb-6">
+              <div className="flex flex-col md:flex-row gap-4">
+                
+                {/* Búsqueda por nombre */}
+                <div className="flex-1">
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Buscar repuesto</label>
+                  <div className="relative">
+                    <Search className="w-5 h-5 text-gray-400 absolute left-3 top-1/2 transform -translate-y-1/2" />
+                    <input
+                      type="text"
+                      value={busquedaRepuestos}
+                      onChange={(e) => setBusquedaRepuestos(e.target.value)}
+                      className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-black"
+                      placeholder="Buscar por nombre..."
+                    />
+                  </div>
+                </div>
+                
+                {/* Filtro por estado */}
+                <div className="md:w-64">
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Filtrar por estado</label>
+                  <select
+                    // USA LA VARIABLE DE ESTADO DEL FILTRO
+                    value={filtroEstadoR} 
+                    // ACTUALIZA LA VARIABLE DE ESTADO DEL FILTRO
+                    onChange={(e) => setFiltroEstadoR(e.target.value)}
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-black"
+                  >
+                    <option value="todos">Todos los estados</option>
+                    <option value="Disponible">Disponible</option>
+                    <option value="En uso">En uso</option>
+                    <option value="Agotado">Agotado</option>
+                    <option value="En pedido">En pedido</option>
+                  </select>
+                </div>
+              </div>
+              
+              {/* Estadísticas de filtros */}
+              <div className="flex flex-wrap gap-4 mt-4 pt-4 border-t border-gray-200">
+                <div className="flex items-center gap-2">
+                  <span className="text-sm text-gray-600">Total:</span>
+                  <span className="px-2 py-1 bg-blue-100 text-blue-700 rounded-full text-xs font-semibold">
+                    {repuestos.length}
+                  </span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <span className="text-sm text-gray-600">Disponible:</span>
+                  <span className="px-2 py-1 bg-green-100 text-green-700 rounded-full text-xs font-semibold">
+                    {contarRepuestosPorEstado("Disponible")}
+                  </span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <span className="text-sm text-gray-600">En uso:</span>
+                  <span className="px-2 py-1 bg-yellow-100 text-yellow-700 rounded-full text-xs font-semibold">
+                    {contarRepuestosPorEstado("En uso")}
+                  </span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <span className="text-sm text-gray-600">Agotado:</span>
+                  <span className="px-2 py-1 bg-red-100 text-red-700 rounded-full text-xs font-semibold">
+                    {contarRepuestosPorEstado("Agotado")}
+                  </span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <span className="text-sm text-gray-600">En pedido:</span>
+                  <span className="px-2 py-1 bg-purple-100 text-purple-700 rounded-full text-xs font-semibold">
+                    {contarRepuestosPorEstado("En pedido")}
+                  </span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <span className="text-sm text-gray-600">Mostrando:</span>
+                  <span className="px-2 py-1 bg-gray-100 text-gray-700 rounded-full text-xs font-semibold">
+                    {/* Muestra la cantidad de repuestos FILTRADOS */}
+                    {repuestosFiltrados.length} de {repuestos.length}
+                  </span>
+                </div>
+                
+              </div>
+            </div>
+            
+            {/* Renderizado Condicional */}
             {loadingRepuestos ? (
+              // ... (Tu código de Skeleton/Carga) ...
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
                 {[1, 2, 3, 4].map((i) => (
                   <div key={i} className="bg-white rounded-xl shadow-sm p-5 animate-pulse">
@@ -1020,6 +1307,7 @@ export default function AdminDashboardPage() {
                 ))}
               </div>
             ) : repuestos.length === 0 ? (
+              // ... (Tu código para cuando no hay repuestos) ...
               <div className="bg-white rounded-xl shadow-sm p-12 text-center">
                 <Package className="w-16 h-16 text-gray-400 mx-auto mb-4" />
                 <h3 className="text-lg font-semibold text-gray-900 mb-2">No hay repuestos registrados</h3>
@@ -1032,9 +1320,27 @@ export default function AdminDashboardPage() {
                   Agregar Primer Repuesto
                 </button>
               </div>
+            ) : repuestosFiltrados.length === 0 ? (
+              // Código para cuando no hay resultados (filtros activos)
+              <div className="bg-white rounded-xl shadow-sm p-12 text-center">
+                <Package className="w-16 h-16 text-gray-400 mx-auto mb-4" />
+                <h3 className="text-lg font-semibold text-gray-900 mb-2">No se encontraron repuestos</h3>
+                <p className="text-gray-600 mb-6">No hay repuestos que coincidan con los filtros aplicados</p>
+                <button 
+                  onClick={() => {
+                    setBusquedaRepuestos("");
+                    setFiltroEstadoR("todos");
+                  }}
+                  className="px-6 py-3 bg-gradient-to-r from-blue-500 to-purple-600 text-white rounded-lg hover:shadow-lg transition-all font-medium inline-flex items-center gap-2"
+                >
+                  Limpiar filtros
+                </button>
+              </div>
             ) : (
+              // Muestra SOLAMENTE los repuestos filtrados
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-                {repuestos.map((r) => (
+                {/* El mapeo se hace sobre la lista YA FILTRADA */}
+                {repuestosFiltrados.map((r) => (
                   <div key={r.id} className="bg-white rounded-xl shadow-sm hover:shadow-md transition-all p-5 group">
                     <div className="flex justify-center mb-4">
                       <div className="w-20 h-20 bg-gradient-to-br from-orange-400 to-red-500 rounded-xl flex items-center justify-center shadow-lg group-hover:scale-110 transition-transform">

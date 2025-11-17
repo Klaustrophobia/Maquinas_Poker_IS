@@ -1,5 +1,10 @@
-"use client";
-import { useState } from "react";
+'use client'; 
+// Este DEBE ser el primer elemento del archivo
+
+import React, { useState } from 'react';
+// ... el resto de tu código
+// "use client";
+// import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "../context/AuthContext"; // Ajusta la ruta según tu estructura
 
