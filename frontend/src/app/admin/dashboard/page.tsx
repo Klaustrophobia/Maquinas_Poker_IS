@@ -2430,19 +2430,19 @@ const repuestosFiltrados = repuestos
                 </button>
                 <button 
                   onClick={() => {
-                    setRepuestoFormData({
+                   setRepuestoFormData({
                       nombre: selectedRepuesto.nombre,
-                      proveedor_id: selectedRepuesto.proveedor_id.toString(), // Convertir number a string
-                      cantidad: selectedRepuesto.cantidad.toString(),
-                      ubicacion: selectedRepuesto.ubicacion,
-                      estado: selectedRepuesto.estado,
+                      proveedor_id: selectedRepuesto.proveedor_id?.toString() || "", // Usa optional chaining
+                      cantidad: selectedRepuesto.cantidad?.toString() || "0", // También seguro para cantidad
+                      ubicacion: selectedRepuesto.ubicacion || "",
+                      estado: selectedRepuesto.estado || "",
                     });
-                    setShowDetailRepuestoModal(false);
-                    setShowEditRepuestoModal(true);
+                   setShowDetailRepuestoModal(false);
+                   setShowEditRepuestoModal(true);
                   }}
                   className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 flex items-center justify-center gap-2"
-                >
-                  <Edit2 className="w-4 h-4" />
+                    >
+                    <Edit2 className="w-4 h-4" />
                   Editar
                 </button>
                 <button 
