@@ -1,41 +1,63 @@
-// services/MaquinaClienteService.ts
-import { Usuario } from '@/entities/Usuario';
-import { Maquina } from '@/entities/Maquina';
-import { MaquinaCliente } from '@/entities/MaquinaCliente';
-import { AppDataSource } from '@/lib/db';
-
-const usuarioRepo = AppDataSource.getRepository(Usuario);
-const maquinaRepo = AppDataSource.getRepository(Maquina);
-const maquinaClienteRepo = AppDataSource.getRepository(MaquinaCliente);
+import { AppDataSource, initializeDatabase } from "@/lib/db";
+import { Usuario } from "@/entities/Usuario";
+import { Maquina } from "@/entities/Maquina";
+import { MaquinaCliente } from "@/entities/MaquinaCliente";
 
 export class MaquinaClienteService {
-  static async asignarMaquinaACliente(clienteId: number, maquinaId: number, estado = 'Activa') {
-    const cliente = await usuarioRepo.findOne({ where: { id: clienteId, rol: 'Cliente', activo: true } });
-    if (!cliente) throw new Error('Cliente no encontrado o inválido');
 
-    const maquina = await maquinaRepo.findOne({ where: { id: maquinaId } });
-    if (!maquina) throw new Error('Máquina no encontrada');
+  async asignar(clienteId: number, maquinaId: number) {
+    await initializeDatabase(); // asegúrate de inicializar antes
+    const usuarioRepo = AppDataSource.getRepository(Usuario);
+    const maquinaRepo = AppDataSource.getRepository(Maquina);
+    const repo = AppDataSource.getRepository(MaquinaCliente);
 
-    const asignacion = new MaquinaCliente();
-    asignacion.cliente = cliente;
-    asignacion.maquina = maquina;
-    asignacion.estado = estado;
+    const cliente = await usuarioRepo.findOneBy({ id: clienteId });
+    if (!cliente) throw new Error("Cliente no encontrado");
 
-    return await maquinaClienteRepo.save(asignacion);
+    const maquina = await maquinaRepo.findOneBy({ id: maquinaId });
+    if (!maquina) throw new Error("Máquina no encontrada");
+
+    // Validar que la máquina no esté asignada
+    const yaAsignada = await repo.findOne({
+      where: { maquina: { id: maquinaId } },
+    });
+    if (yaAsignada) {
+      throw new Error("Esta máquina ya está asignada a un cliente");
+    }
+
+    const asignacion = repo.create({
+      cliente,
+      maquina,
+      estado: "Asignada",
+    });
+
+    return await repo.save(asignacion);
   }
 
-  static async obtenerAsignacionesDeCliente(clienteId: number) {
-    return await maquinaClienteRepo.find({
+  async listarPorCliente(clienteId: number) {
+    await initializeDatabase();
+    const repo = AppDataSource.getRepository(MaquinaCliente);
+
+    return await repo.find({
       where: { cliente: { id: clienteId } },
-      relations: ['maquina'],
+      relations: ["maquina"],
     });
   }
 
-  static async eliminarAsignacion(clienteId: number, maquinaId: number) {
-    const result = await maquinaClienteRepo.delete({
-      cliente: { id: clienteId },
-      maquina: { id: maquinaId },
+  async desasignar(maquinaId: number) {
+    await initializeDatabase();
+    const repo = AppDataSource.getRepository(MaquinaCliente);
+
+    const registro = await repo.findOne({
+      where: { maquina: { id: maquinaId } },
     });
-    return result;
+
+    if (!registro) {
+      throw new Error("La máquina no está asignada a ningún cliente");
+    }
+
+    await repo.remove(registro);
+
+    return { mensaje: "Máquina desasignada correctamente" };
   }
 }

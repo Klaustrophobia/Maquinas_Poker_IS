@@ -1,0 +1,29 @@
+-- ============================================================
+-- ELIMINAR TRIGGER Y FUNCIÓN DE IDENTIFICADOR ÚNICO
+-- ============================================================
+DROP TRIGGER IF EXISTS trigger_identificador_unico ON public.usuarios;
+DROP FUNCTION IF EXISTS public.generar_identificador_unico();
+
+
+-- ============================================================
+-- FUNCIÓN PARA REGISTRAR CAMBIOS DE ESTADO EN ÓRDENES DE REPARACIÓN
+-- ============================================================
+CREATE OR REPLACE FUNCTION registrar_cambio_estado() RETURNS TRIGGER AS $$
+BEGIN
+  IF NEW.estado IS DISTINCT FROM OLD.estado THEN
+    INSERT INTO auditoria_ordenes (orden_id, estado_anterior, estado_nuevo, fecha_cambio)
+    VALUES (OLD.id, OLD.estado, NEW.estado, now());
+  END IF;
+
+  RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+
+-- ============================================================
+-- TRIGGER PARA REGISTRAR CAMBIOS DE ESTADO
+-- ============================================================
+CREATE TRIGGER trigger_cambio_estado
+AFTER UPDATE ON ordenes_reparacion
+FOR EACH ROW
+EXECUTE FUNCTION registrar_cambio_estado();

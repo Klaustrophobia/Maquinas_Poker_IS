@@ -1,5 +1,5 @@
 import { ProveedorRepository } from "@/repositories/Proveedor.repository";
-import { Proveedor } from "../entities/Proveedor";
+import { Proveedor } from "@/entities/Proveedor";
 
 export class ProveedorService {
   private proveedorRepo: ProveedorRepository;

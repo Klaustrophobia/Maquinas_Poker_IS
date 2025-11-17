@@ -1,23 +1,24 @@
-import { Entity, PrimaryGeneratedColumn, Column, ManyToOne, JoinColumn } from 'typeorm';
-import { Usuario } from './Usuario';
-import { Maquina } from './Maquina';
+// src/entities/MaquinaCliente.ts
+import { Entity, PrimaryGeneratedColumn, Column, ManyToOne, JoinColumn } from "typeorm";
+import { Usuario } from "@/entities/Usuario";
+import { Maquina } from "@/entities/Maquina";
 
-@Entity({ name: 'maquinas_cliente' })
+@Entity("maquinas_cliente")
 export class MaquinaCliente {
-  @PrimaryGeneratedColumn('increment')
-  id: number;
+  @PrimaryGeneratedColumn("increment")
+  id!: number;
 
-  @ManyToOne(() => Usuario)
-  @JoinColumn({ name: 'cliente_id' })
-  cliente: Usuario;
+  @ManyToOne(() => Usuario, { eager: true })
+  @JoinColumn({ name: "cliente_id" })
+  cliente!: Usuario;
 
-  @ManyToOne(() => Maquina)
-  @JoinColumn({ name: 'maquina_id' })
-  maquina: Maquina;
+  @ManyToOne(() => Maquina, { eager: true })
+  @JoinColumn({ name: "maquina_id" })
+  maquina!: Maquina;
 
   @Column()
-  estado: string;
+  estado!: string;
 
-  @Column({ type: 'timestamp', default: () => 'CURRENT_TIMESTAMP' })
-  fecha_asignacion: Date;
+  @Column({ type: "timestamp with time zone", default: () => "now()" })
+  fecha_asignacion!: Date;
 }
