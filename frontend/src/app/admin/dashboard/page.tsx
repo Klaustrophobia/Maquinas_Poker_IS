@@ -260,6 +260,12 @@ export default function AdminDashboardPage() {
     return coincideBusqueda;
   });
 
+  // Filtrar repuestos según búsqueda
+  const repuestosFiltrados = repuestos.filter((repuesto: Repuesto) => {
+    const coincideBusqueda = repuesto.nombre?.toLowerCase().includes(busquedaRepuestos.toLowerCase());
+    return coincideBusqueda;
+  });
+
   // Helper para convertir string a boolean
   const stringToBoolean = (value: string): boolean => {
     return value === "true";
@@ -1075,6 +1081,34 @@ export default function AdminDashboardPage() {
               </button>
             </div>
 
+            {/* Filtros y Búsqueda - AÑADIDO */}
+            <div className="bg-white rounded-xl shadow-sm p-6 mb-6">
+              <div className="flex flex-col md:flex-row gap-4 items-center">
+                {/* Búsqueda por nombre */}
+                <div className="flex-1">
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Buscar repuesto</label>
+                  <div className="relative">
+                    <Search className="w-5 h-5 text-gray-400 absolute left-3 top-1/2 transform -translate-y-1/2" />
+                    <input
+                      type="text"
+                      value={busquedaRepuestos}
+                      onChange={(e) => setBusquedaRepuestos(e.target.value)}
+                      className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-black"
+                      placeholder="Buscar por nombre..."
+                    />
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-2 mt-auto">
+                  <span className="text-sm text-gray-600">Mostrando:</span>
+                  <span className="px-2 py-1 bg-gray-100 text-gray-700 rounded-full text-xs font-semibold">
+                    {repuestosFiltrados.length} de {repuestos.length}
+                  </span>
+                </div>
+              </div>
+            </div>
+            
+            {/* Renderizado Condicional de la Lista */}
             {loadingRepuestos ? (
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
                 {[1, 2, 3, 4].map((i) => (
@@ -1084,6 +1118,7 @@ export default function AdminDashboardPage() {
                 ))}
               </div>
             ) : repuestos.length === 0 ? (
+              // Sin repuestos en el sistema
               <div className="bg-white rounded-xl shadow-sm p-12 text-center">
                 <Package className="w-16 h-16 text-gray-400 mx-auto mb-4" />
                 <h3 className="text-lg font-semibold text-gray-900 mb-2">No hay repuestos registrados</h3>
@@ -1096,9 +1131,25 @@ export default function AdminDashboardPage() {
                   Agregar Primer Repuesto
                 </button>
               </div>
+            ) : repuestosFiltrados.length === 0 ? (
+              // Sin resultados para la búsqueda (Nuevo estado añadido)
+              <div className="bg-white rounded-xl shadow-sm p-12 text-center">
+                <Package className="w-16 h-16 text-gray-400 mx-auto mb-4" />
+                <h3 className="text-lg font-semibold text-gray-900 mb-2">No se encontraron repuestos</h3>
+                <p className="text-gray-600 mb-6">Ningún repuesto coincide con el término de búsqueda.</p>
+                <button 
+                  onClick={() => {
+                    setBusquedaRepuestos(""); // Limpia el filtro
+                  }}
+                  className="px-6 py-3 bg-gradient-to-r from-blue-500 to-purple-600 text-white rounded-lg hover:shadow-lg transition-all font-medium inline-flex items-center gap-2"
+                >
+                  Limpiar búsqueda
+                </button>
+              </div>
             ) : (
+              // Muestra los repuestos filtrados (CAMBIO CLAVE)
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-                {repuestos.map((r) => (
+                {repuestosFiltrados.map((r) => (
                   <div key={r.id} className="bg-white rounded-xl shadow-sm hover:shadow-md transition-all p-5 group">
                     <div className="flex justify-center mb-4">
                       <div className="w-20 h-20 bg-gradient-to-br from-orange-400 to-red-500 rounded-xl flex items-center justify-center shadow-lg group-hover:scale-110 transition-transform">
