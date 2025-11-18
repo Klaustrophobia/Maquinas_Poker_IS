@@ -33,32 +33,44 @@ export default function ClienteDashboardPage() {
   const menuItems = [
     { id: "dashboard", label: "Dashboard", icon: Home },
     { id: "maquinas", label: "Mis Máquinas", icon: Wrench },
-    { id: "solicitudes", label: "Solicitudes", icon: Wrench }, // Cambiado de Tool a Wrench
+    { id: "solicitudes", label: "Solicitudes", icon: Wrench },
     { id: "recibos", label: "Recibos", icon: FileText },
   ];
 
   useEffect(() => {
-    fetchMaquinas();
-    fetchRecibos();
-    fetchSolicitudes();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+    if (usuario?.id) {
+      fetchMaquinas();
+      fetchRecibos();
+      fetchSolicitudes();
+    }
+  }, [usuario]);
 
+  // ✅ CORREGIDO - Usa el endpoint correcto para máquinas del cliente
   const fetchMaquinas = async () => {
     setLoadingMaquinas(true);
     try {
-      const res = await fetch(`${backendUrl}/api/Maquina`);
+      const res = await fetch(`${backendUrl}/api/Maquina-Cliente/listar?cliente_id=${usuario?.id}`);
       if (res.ok) {
         const data = await res.json();
-        const maquinasArray = Array.isArray(data) ? data : [];
-        // Filtrar solo las máquinas del cliente actual
-        const misMaquinas = maquinasArray.filter(m => m.cliente_id === usuario?.id);
+        
+        // La data viene como array de asignaciones, extraemos las máquinas
+        const misMaquinas = Array.isArray(data) 
+          ? data.map(asignacion => ({
+              ...asignacion.maquina,
+              fecha_asignacion: asignacion.fecha_asignacion,
+              estado_asignacion: asignacion.estado
+            }))
+          : [];
+        
         setMaquinas(misMaquinas);
         setStats(prev => ({ ...prev, totalMaquinas: misMaquinas.length }));
+      } else {
+        throw new Error("Error al cargar máquinas");
       }
     } catch (error) {
       console.error("Error:", error);
       setMaquinas([]);
+      setStats(prev => ({ ...prev, totalMaquinas: 0 }));
     } finally {
       setLoadingMaquinas(false);
     }
@@ -108,16 +120,23 @@ export default function ClienteDashboardPage() {
 
   const getEstadoColor = (estado) => {
     const estadoLower = String(estado || "").toLowerCase();
-    if (estadoLower.includes("pagado") || estadoLower.includes("completad")) return "bg-green-100 text-green-700";
+    if (estadoLower.includes("pagado") || estadoLower.includes("completad") || estadoLower.includes("funcionando")) return "bg-green-100 text-green-700";
     if (estadoLower.includes("proceso")) return "bg-blue-100 text-blue-700";
     if (estadoLower.includes("pendiente")) return "bg-yellow-100 text-yellow-700";
-    if (estadoLower.includes("rechazad")) return "bg-red-100 text-red-700";
+    if (estadoLower.includes("rechazad") || estadoLower.includes("fuera de servicio")) return "bg-red-100 text-red-700";
+    if (estadoLower.includes("mantenimiento")) return "bg-orange-100 text-orange-700";
     return "bg-gray-100 text-gray-700";
   };
 
   const handleLogout = () => {
     logout();
     router.push("/login");
+  };
+
+  // Función para formatear fecha
+  const formatFecha = (fechaString) => {
+    if (!fechaString) return "N/A";
+    return new Date(fechaString).toLocaleDateString('es-ES');
   };
 
   const renderContent = () => {
@@ -148,8 +167,8 @@ export default function ClienteDashboardPage() {
             ) : maquinas.length === 0 ? (
               <div className="bg-white rounded-xl shadow-sm p-12 text-center">
                 <Wrench className="w-16 h-16 text-gray-400 mx-auto mb-4" />
-                <h3 className="text-lg font-semibold text-gray-900 mb-2">No tienes máquinas registradas</h3>
-                <p className="text-gray-600">Contacta con soporte para registrar tus máquinas</p>
+                <h3 className="text-lg font-semibold text-gray-900 mb-2">No tienes máquinas asignadas</h3>
+                <p className="text-gray-600">Contacta con el administrador para asignarte máquinas</p>
               </div>
             ) : (
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -165,7 +184,10 @@ export default function ClienteDashboardPage() {
                     </div>
                     <h3 className="text-lg font-semibold text-gray-900 mb-2">{m.nombre || `Máquina #${i + 1}`}</h3>
                     <p className="text-sm text-gray-600 mb-1">Tipo: {m.tipo || "N/A"}</p>
-                    <p className="text-sm text-gray-600 mb-4">Ubicación: {m.ubicacion || "N/A"}</p>
+                    <p className="text-sm text-gray-600 mb-1">Ubicación: {m.ubicacion || "N/A"}</p>
+                    <p className="text-sm text-gray-600 mb-4">
+                      Asignada desde: {formatFecha(m.fecha_asignacion)}
+                    </p>
                     <button className="w-full bg-blue-50 text-blue-600 py-2 rounded-lg hover:bg-blue-100 transition-colors text-sm font-medium flex items-center justify-center gap-2">
                       <Eye className="w-4 h-4" />
                       Ver detalles
@@ -177,6 +199,7 @@ export default function ClienteDashboardPage() {
           </div>
         );
 
+      // ... (el resto del código se mantiene igual)
       case "solicitudes":
         return (
           <div>

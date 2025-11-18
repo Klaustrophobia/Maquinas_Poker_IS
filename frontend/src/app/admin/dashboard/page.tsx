@@ -1,6 +1,6 @@
 "use client";
 import { useState, useEffect } from "react";
-import { Menu, X, Home, Users, Package, Wrench, Truck, LogOut, Plus, Eye, Edit2, Trash2, Search } from "lucide-react";
+import { Menu, X, Home, Users, Package, Wrench, Truck, LogOut, Plus, Eye, Edit2, Trash2, Search, FileText, Clipboard } from "lucide-react";
 import { useAuth } from "@/app/context/AuthContext";
 import { useRouter } from "next/navigation";
 
@@ -140,6 +140,8 @@ export default function AdminDashboardPage() {
     { id: "usuarios", label: "Usuarios", icon: Users },
     { id: "proveedores", label: "Proveedores", icon: Truck },
     { id: "repuestos", label: "Repuestos", icon: Package },
+    { id: "recibos", label: "Recibos", icon: FileText, href: "/admin/contabilidad" },
+    { id: "ordenesTrabajo", label: "Órdenes de Trabajo", icon: Clipboard, href: "/admin/ordenesTrabajo" },
   ];
 
   useEffect(() => {
@@ -1507,7 +1509,13 @@ const repuestosFiltrados = repuestos
               return (
                 <li key={item.id}>
                   <button
-                    onClick={() => setActiveSection(item.id)}
+                    onClick={() => {
+                      if ("href" in item && item.href) {
+                        router.push(item.href);
+                      } else {
+                        setActiveSection(item.id);
+                      }
+                    }}
                     className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-all ${
                       isActive ? "bg-gradient-to-r from-blue-500 to-purple-600 text-white shadow-md" : "text-gray-700 hover:bg-gray-100"
                     }`}

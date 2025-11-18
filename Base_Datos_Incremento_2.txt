@@ -129,6 +129,11 @@ CREATE INDEX idx_recibos_fecha ON recibos(fecha_recibo);
 CREATE INDEX idx_maquinas_cliente_cliente ON maquinas_cliente(cliente_id);
 CREATE INDEX idx_maquinas_cliente_maquina ON maquinas_cliente(maquina_id);
 
+-- Restricciones
+ALTER TABLE maquinas_cliente
+ADD CONSTRAINT unica_maquina_cliente UNIQUE (maquina_id);
+
+
 -- Comentarios
 COMMENT ON TABLE roles IS 'Tabla de roles del sistema con los tipos permitidos: Administrador, Tecnico, Cliente';
 COMMENT ON COLUMN usuarios.rol IS 'Rol del usuario, solo permite: Administrador, Tecnico, Cliente';

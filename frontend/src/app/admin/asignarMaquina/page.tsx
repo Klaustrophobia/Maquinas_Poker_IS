@@ -1,7 +1,7 @@
 "use client";
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { ArrowLeft, Users, Wrench, UserPlus, X, RefreshCw } from "lucide-react";
+import { ArrowLeft, Users, Wrench, UserPlus, X, RefreshCw, UserCheck } from "lucide-react";
 
 // Interfaces
 interface Maquina {
@@ -22,6 +22,12 @@ interface Cliente {
   nombre_usuario: string;
 }
 
+interface ClienteActual {
+  cliente_id: number;
+  cliente_nombre: string;
+  fecha_asignacion: string;
+}
+
 export default function AsignarMaquina() {
   const router = useRouter();
   const [maquinasAsignadas, setMaquinasAsignadas] = useState<Asignada[]>([]);
@@ -31,6 +37,8 @@ export default function AsignarMaquina() {
   const [selectedMaquina, setSelectedMaquina] = useState<number | null>(null);
   const [selectedCliente, setSelectedCliente] = useState<number | null>(null);
   const [loading, setLoading] = useState(false);
+  const [modalMode, setModalMode] = useState<'asignar' | 'reasignar'>('asignar');
+  const [clienteActual, setClienteActual] = useState<ClienteActual | null>(null);
   
   const API_URL = process.env.NEXT_PUBLIC_API_URL;
 
@@ -60,11 +68,31 @@ export default function AsignarMaquina() {
     fetchData();
   }, []);
 
-  // ---------- Abrir modal ----------
-  const openModal = (maquinaId: number) => {
+  // ---------- Abrir modal para ASIGNAR ----------
+  const openModalAsignar = (maquinaId: number) => {
     setSelectedMaquina(maquinaId);
     setSelectedCliente(null);
+    setModalMode('asignar');
+    setClienteActual(null);
     setModalOpen(true);
+  };
+
+  // ---------- Abrir modal para REASIGNAR ----------
+  const openModalReasignar = async (maquinaId: number) => {
+    setSelectedMaquina(maquinaId);
+    setSelectedCliente(null);
+    setModalMode('reasignar');
+    setModalOpen(true);
+    
+    // Obtener el cliente actual de la máquina
+    try {
+      const res = await fetch(`${API_URL}/api/Maquina-Cliente/cliente-actual?maquina_id=${maquinaId}`);
+      const data = await res.json();
+      setClienteActual(data);
+    } catch (error) {
+      console.error("Error al obtener cliente actual:", error);
+      setClienteActual(null);
+    }
   };
 
   // ---------- Asignar máquina ----------
@@ -98,12 +126,64 @@ export default function AsignarMaquina() {
     }
   };
 
+  // ---------- REASIGNAR máquina ----------
+  const handleReasignar = async () => {
+    if (!selectedMaquina || !selectedCliente) {
+      alert("Debes seleccionar un cliente.");
+      return;
+    }
+
+    // Validar que no sea el mismo cliente
+    if (clienteActual && selectedCliente === clienteActual.cliente_id) {
+      alert("La máquina ya está asignada a este cliente.");
+      return;
+    }
+
+    setLoading(true);
+    try {
+      const res = await fetch(`${API_URL}/api/Maquina-Cliente/reasignar`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          maquina_id: selectedMaquina,
+          nuevo_cliente_id: selectedCliente,
+        }),
+      });
+
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Error desconocido");
+
+      alert("Máquina reasignada con éxito.");
+      setModalOpen(false);
+      fetchData();
+    } catch (error: any) {
+      alert("Error: " + error.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // ---------- Función única para manejar ambas acciones ----------
+  const handleConfirm = () => {
+    if (modalMode === 'asignar') {
+      handleAsignar();
+    } else {
+      handleReasignar();
+    }
+  };
+
   const getEstadoColor = (estado: string) => {
     const estadoLower = String(estado || "").toLowerCase();
     if (estadoLower.includes("funcionando")) return "bg-green-100 text-green-700";
     if (estadoLower.includes("mantenimiento")) return "bg-yellow-100 text-yellow-700";
     if (estadoLower.includes("fuera de servicio")) return "bg-red-100 text-red-700";
     return "bg-gray-100 text-gray-700";
+  };
+
+  // Obtener nombre de máquina por ID
+  const getNombreMaquina = (id: number) => {
+    const todasMaquinas = [...maquinasAsignadas.map(a => a.maquina), ...maquinasNoAsignadas];
+    return todasMaquinas.find(m => m.id === id)?.nombre || `Máquina #${id}`;
   };
 
   return (
@@ -123,7 +203,7 @@ export default function AsignarMaquina() {
               <div className="h-8 w-px bg-gray-300"></div>
               <div>
                 <h1 className="text-2xl font-bold text-gray-900">Gestión de Asignación de Máquinas</h1>
-                <p className="text-sm text-gray-600">Asigna máquinas a clientes</p>
+                <p className="text-sm text-gray-600">Asigna y reasigna máquinas a clientes</p>
               </div>
             </div>
             <button
@@ -219,7 +299,7 @@ export default function AsignarMaquina() {
                       </td>
                       <td className="px-6 py-4">
                         <button
-                          onClick={() => openModal(m.id)}
+                          onClick={() => openModalAsignar(m.id)}
                           className="px-4 py-2 bg-gradient-to-r from-blue-500 to-purple-600 text-white rounded-lg hover:shadow-lg transition-all text-sm font-medium flex items-center gap-2"
                         >
                           <UserPlus className="w-4 h-4" />
@@ -287,10 +367,10 @@ export default function AsignarMaquina() {
                       </td>
                       <td className="px-6 py-4">
                         <button
-                          onClick={() => openModal(m.maquina.id)}
-                          className="px-4 py-2 bg-green-50 text-green-600 rounded-lg hover:bg-green-100 transition-colors text-sm font-medium flex items-center gap-2"
+                          onClick={() => openModalReasignar(m.maquina.id)}
+                          className="px-4 py-2 bg-gradient-to-r from-green-500 to-emerald-600 text-white rounded-lg hover:shadow-lg transition-all text-sm font-medium flex items-center gap-2"
                         >
-                          <RefreshCw className="w-4 h-4" />
+                          <UserCheck className="w-4 h-4" />
                           Cambiar cliente
                         </button>
                       </td>
@@ -313,8 +393,19 @@ export default function AsignarMaquina() {
       {modalOpen && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
           <div className="bg-white rounded-xl shadow-2xl w-full max-w-md">
-            <div className="border-b border-gray-200 px-6 py-4 flex items-center justify-between">
-              <h3 className="text-xl font-bold text-gray-900">Asignar máquina a cliente</h3>
+            <div className={`border-b px-6 py-4 flex items-center justify-between ${
+              modalMode === 'asignar' ? 'bg-gradient-to-r from-blue-50 to-purple-50' : 'bg-gradient-to-r from-green-50 to-emerald-50'
+            }`}>
+              <div className="flex items-center gap-3">
+                {modalMode === 'asignar' ? (
+                  <UserPlus className="w-6 h-6 text-blue-600" />
+                ) : (
+                  <UserCheck className="w-6 h-6 text-green-600" />
+                )}
+                <h3 className="text-xl font-bold text-gray-900">
+                  {modalMode === 'asignar' ? 'Asignar máquina' : 'Reasignar máquina'}
+                </h3>
+              </div>
               <button
                 onClick={() => setModalOpen(false)}
                 className="text-gray-400 hover:text-gray-600 transition-colors"
@@ -324,9 +415,29 @@ export default function AsignarMaquina() {
             </div>
 
             <div className="p-6 space-y-4">
+              {/* Información de la máquina */}
+              <div className="bg-gray-50 rounded-lg p-4">
+                <p className="text-sm text-gray-600">Máquina seleccionada:</p>
+                <p className="font-semibold text-gray-900">
+                  {selectedMaquina ? getNombreMaquina(selectedMaquina) : 'N/A'}
+                </p>
+              </div>
+
+              {/* Información del cliente actual (solo en reasignación) */}
+              {modalMode === 'reasignar' && clienteActual && (
+                <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
+                  <p className="text-sm text-yellow-800 font-medium mb-1">Cliente actual:</p>
+                  <p className="text-yellow-900">{clienteActual.cliente_nombre}</p>
+                  <p className="text-xs text-yellow-700 mt-1">
+                    Asignado el: {new Date(clienteActual.fecha_asignacion).toLocaleDateString()}
+                  </p>
+                </div>
+              )}
+
+              {/* Selector de cliente */}
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Selecciona un cliente *
+                  {modalMode === 'asignar' ? 'Selecciona un cliente *' : 'Selecciona el nuevo cliente *'}
                 </label>
                 {clientes.length > 0 ? (
                   <select
@@ -356,19 +467,23 @@ export default function AsignarMaquina() {
                   Cancelar
                 </button>
                 <button
-                  onClick={handleAsignar}
+                  onClick={handleConfirm}
                   disabled={loading || !selectedCliente}
-                  className="flex-1 px-4 py-2 bg-gradient-to-r from-blue-500 to-purple-600 text-white rounded-lg hover:shadow-lg transition-all font-medium disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                  className={`flex-1 px-4 py-2 text-white rounded-lg hover:shadow-lg transition-all font-medium disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 ${
+                    modalMode === 'asignar' 
+                      ? 'bg-gradient-to-r from-blue-500 to-purple-600' 
+                      : 'bg-gradient-to-r from-green-500 to-emerald-600'
+                  }`}
                 >
                   {loading ? (
                     <>
                       <RefreshCw className="w-4 h-4 animate-spin" />
-                      Asignando...
+                      {modalMode === 'asignar' ? 'Asignando...' : 'Reasignando...'}
                     </>
                   ) : (
                     <>
-                      <UserPlus className="w-4 h-4" />
-                      Confirmar asignación
+                      {modalMode === 'asignar' ? <UserPlus className="w-4 h-4" /> : <UserCheck className="w-4 h-4" />}
+                      {modalMode === 'asignar' ? 'Confirmar asignación' : 'Confirmar reasignación'}
                     </>
                   )}
                 </button>

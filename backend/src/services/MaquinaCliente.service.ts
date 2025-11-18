@@ -60,4 +60,73 @@ export class MaquinaClienteService {
 
     return { mensaje: "Máquina desasignada correctamente" };
   }
+
+  async reasignar(maquinaId: number, nuevoClienteId: number, clienteAnteriorId?: number) {
+    await initializeDatabase();
+    const usuarioRepo = AppDataSource.getRepository(Usuario);
+    const repo = AppDataSource.getRepository(MaquinaCliente);
+
+    // 1. Verificar que el nuevo cliente existe
+    const nuevoCliente = await usuarioRepo.findOneBy({ id: nuevoClienteId });
+    if (!nuevoCliente) {
+      throw new Error("El nuevo cliente no existe");
+    }
+
+    // 2. Obtener la asignación actual de la máquina
+    const asignacionActual = await repo.findOne({
+      where: { maquina: { id: maquinaId } },
+      relations: ["cliente", "maquina"]
+    });
+
+    if (!asignacionActual) {
+      throw new Error("La máquina no está asignada a ningún cliente");
+    }
+
+    // 3. Validación opcional: verificar cliente anterior si se proporciona
+    if (clienteAnteriorId && asignacionActual.cliente.id !== clienteAnteriorId) {
+      throw new Error("La máquina no está asignada al cliente especificado");
+    }
+
+    // 4. Verificar que no sea la misma reasignación
+    if (asignacionActual.cliente.id === nuevoClienteId) {
+      throw new Error("La máquina ya está asignada a este cliente");
+    }
+
+    // 5. Actualizar la asignación con el nuevo cliente
+    asignacionActual.cliente = nuevoCliente;
+    asignacionActual.fecha_asignacion = new Date(); // Actualizar fecha de asignación
+
+    return await repo.save(asignacionActual);
+  }
+
+  async obtenerClienteActual(maquinaId: number) {
+    await initializeDatabase();
+    const repo = AppDataSource.getRepository(MaquinaCliente);
+
+    const asignacion = await repo.findOne({
+      where: { maquina: { id: maquinaId } },
+      relations: ["cliente"]
+    });
+
+    if (!asignacion) {
+      return null;
+    }
+
+    return {
+      cliente_id: asignacion.cliente.id,
+      cliente_nombre: asignacion.cliente.nombre_usuario,
+      fecha_asignacion: asignacion.fecha_asignacion
+    };
+  }
+
+  async obtenerHistorialMaquina(maquinaId: number) {
+    await initializeDatabase();
+    const repo = AppDataSource.getRepository(MaquinaCliente);
+    
+    return await repo.find({
+      where: { maquina: { id: maquinaId } },
+      relations: ["cliente"],
+      order: { fecha_asignacion: "DESC" }
+    });
+  }
 }
