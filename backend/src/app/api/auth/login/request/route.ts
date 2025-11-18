@@ -10,10 +10,10 @@ function generateCode(length = 6) {
 
 export async function POST(req: NextRequest) {
   const body = await req.json();
-  const { correo } = body;
+  const { correo, contraseña } = body;
 
-  if (!correo) {
-    return NextResponse.json({ error: "Correo es requerido" }, { status: 400 });
+  if (!correo || !contraseña) {
+    return NextResponse.json({ error: "Correo y contraseña son requeridos" }, { status: 400 });
   }
 
   if (!AppDataSource.isInitialized) await AppDataSource.initialize();
@@ -22,13 +22,24 @@ export async function POST(req: NextRequest) {
   const user = await userRepo.findOne({ where: { correo } });
 
   if (!user) {
-    return NextResponse.json({ error: "Usuario no encontrado" }, { status: 404 });
+    return NextResponse.json({ error: "Credenciales incorrectas" }, { status: 401 });
   }
 
+  if (!user.activo) {
+    return NextResponse.json({ error: "Cuenta desactivada" }, { status: 401 });
+  }
+
+  // ✅ COMPARACIÓN DIRECTA (sin bcrypt)
+  if (user.contraseña !== contraseña) {
+    return NextResponse.json({ error: "Credenciales incorrectas" }, { status: 401 });
+  }
+
+  // ✅ Generar y guardar código
   const code = generateCode();
   user.codigo_login = code;
   await userRepo.save(user);
 
+  // ✅ Enviar correo
   await sendVerificationEmail(user.correo, code);
 
   return applyCorsHeaders(req, NextResponse.json({ message: "Código de login enviado por correo" }), "POST,OPTIONS");

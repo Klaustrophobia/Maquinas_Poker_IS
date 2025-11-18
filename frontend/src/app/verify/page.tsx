@@ -83,34 +83,34 @@ export default function VerifyPage() {
   };
 
   const handleResend = async () => {
-    if (!canResend || !correo) return;
-    
-    setIsLoading(true);
-    setMensaje("");
+  if (!canResend || !correo) return;
+  
+  setIsLoading(true);
+  setMensaje("");
 
-    try {
-      const backendUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3000";
-      const res = await fetch(`${backendUrl}/api/auth/login/request`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ correo, contraseña: "" }), // Ajusta según tu backend
-      });
+  try {
+    const backendUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3000";
+    const res = await fetch(`${backendUrl}/api/auth/login/request`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ correo }), // Para reenvío, solo correo podría ser suficiente
+    });
 
-      if (res.ok) {
-        setMensaje("Código reenviado exitosamente");
-        setCanResend(false);
-        setCountdown(60);
-      } else {
-        const data = await res.json();
-        setMensaje(data.error || "Error al reenviar el código");
-      }
-    } catch (error) {
-      setMensaje("Error de conexión");
-      console.error(error);
-    } finally {
-      setIsLoading(false);
+    if (res.ok) {
+      setMensaje("Código reenviado exitosamente");
+      setCanResend(false);
+      setCountdown(60);
+    } else {
+      const data = await res.json();
+      setMensaje(data.error || "Error al reenviar el código");
     }
-  };
+  } catch (error) {
+    setMensaje("Error de conexión");
+    console.error(error);
+  } finally {
+    setIsLoading(false);
+  }
+};
 
   const maskEmail = (email: string) => {
     if (!email) return "";

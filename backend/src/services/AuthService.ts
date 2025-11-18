@@ -1,4 +1,3 @@
-import bcrypt from "bcrypt";
 import jwt from "jsonwebtoken";
 import { UsuarioRepository } from "@/repositories/UsuarioRepository";
 import { randomInt } from "crypto";
@@ -12,8 +11,10 @@ export class AuthService {
     if (!usuario) throw new Error("Credenciales incorrectas.");
     if (!usuario.activo) throw new Error("Cuenta desactivada.");
 
-    const valid = await bcrypt.compare(contraseña, usuario.contraseña);
-    if (!valid) throw new Error("Credenciales incorrectas.");
+    // ✅ COMPARACIÓN DIRECTA (sin bcrypt)
+    if (usuario.contraseña !== contraseña) {
+      throw new Error("Credenciales incorrectas.");
+    }
 
     // Generar código aleatorio de 6 dígitos
     const codigo = randomInt(100000, 999999).toString();
