@@ -695,13 +695,22 @@ const repuestosFiltrados = repuestos
           <div>
             <div className="flex items-center justify-between mb-6">
               <h2 className="text-3xl font-bold text-gray-900">Gestión de Máquinas</h2>
-              <button 
-                onClick={() => setShowAddMaquinaModal(true)}
-                className="px-4 py-2 bg-gradient-to-r from-blue-500 to-purple-600 text-white rounded-lg hover:shadow-lg transition-all font-medium flex items-center gap-2"
-              >
-                <Plus className="w-5 h-5" />
-                Nueva Máquina
-              </button>
+              <div className="flex gap-3">
+                <button 
+                  onClick={() => window.location.href = '/admin/asignarMaquina'}
+                  className="px-4 py-2 bg-gradient-to-r from-green-500 to-teal-600 text-white rounded-lg hover:shadow-lg transition-all font-medium flex items-center gap-2"
+                >
+                  <Wrench className="w-5 h-5" />
+                  Asignar Máquinas
+                </button>
+                <button 
+                  onClick={() => setShowAddMaquinaModal(true)}
+                  className="px-4 py-2 bg-gradient-to-r from-blue-500 to-purple-600 text-white rounded-lg hover:shadow-lg transition-all font-medium flex items-center gap-2"
+                >
+                  <Plus className="w-5 h-5" />
+                  Nueva Máquina
+                </button>
+              </div>
             </div>
 
             {/* Filtros y Búsqueda */}

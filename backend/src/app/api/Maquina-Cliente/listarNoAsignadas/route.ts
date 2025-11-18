@@ -1,0 +1,30 @@
+import { NextResponse } from "next/server";
+import { AppDataSource } from "@/lib/db";
+import { Maquina } from "@/entities/Maquina";
+import { MaquinaCliente } from "@/entities/MaquinaCliente";
+import { In, Not } from "typeorm";
+
+export async function GET() {
+  try {
+    const db = await AppDataSource.initialize().catch(() => AppDataSource);
+
+    const maquinaRepo = db.getRepository(Maquina);
+    const asignacionRepo = db.getRepository(MaquinaCliente);
+
+    const asignadas = await asignacionRepo.find({
+      relations: ["maquina"],
+    });
+
+    const idsAsignadas = asignadas.map((a) => a.maquina.id);
+
+    const maquinas =
+      idsAsignadas.length > 0
+        ? await maquinaRepo.find({ where: { id: Not(In(idsAsignadas)) } })
+        : await maquinaRepo.find();
+
+    return NextResponse.json(maquinas);
+  } catch (error: any) {
+    console.error("Error:", error);
+    return NextResponse.json({ error: error.message }, { status: 400 });
+  }
+}
