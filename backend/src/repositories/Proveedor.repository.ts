@@ -1,5 +1,5 @@
 import { AppDataSource, initializeDatabase } from "../lib/db";
-import { Proveedor } from "../entities/Proveedor";
+import { Proveedor } from "@/entities/Proveedor";
 import { Repository } from "typeorm";
 
 export class ProveedorRepository {
