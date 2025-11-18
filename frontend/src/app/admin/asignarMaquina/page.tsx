@@ -39,28 +39,55 @@ export default function AsignarMaquina() {
   const [loading, setLoading] = useState(false);
   const [modalMode, setModalMode] = useState<'asignar' | 'reasignar'>('asignar');
   const [clienteActual, setClienteActual] = useState<ClienteActual | null>(null);
-  
-  const API_URL = process.env.NEXT_PUBLIC_API_URL;
+  const [error, setError] = useState<string | null>(null);
 
   // ---------- Fetch de datos ----------
   const fetchData = async () => {
+    setError(null);
     try {
-      // Máquinas no asignadas
-      const resNoAsignadas = await fetch(`${API_URL}/api/Maquina-Cliente/listarNoAsignadas`);
+      console.log('Iniciando carga de datos...');
+
+      // Máquinas no asignadas - URL absoluta con puerto 3000
+      const resNoAsignadas = await fetch('http://localhost:3000/api/Maquina-Cliente/listarNoAsignadas');
+      console.log('Status no asignadas:', resNoAsignadas.status);
+      
+      if (!resNoAsignadas.ok) {
+        throw new Error(`Error ${resNoAsignadas.status} al cargar máquinas no asignadas`);
+      }
+      
       const noAsignadasData = await resNoAsignadas.json();
+      console.log('Datos no asignadas:', noAsignadasData);
       setMaquinasNoAsignadas(noAsignadasData);
 
-      // Máquinas asignadas
-      const resAsignadas = await fetch(`${API_URL}/api/Maquina-Cliente/listarTodas`);
+      // Máquinas asignadas - URL absoluta con puerto 3000
+      const resAsignadas = await fetch('http://localhost:3000/api/Maquina-Cliente/listarTodas');
+      console.log('Status asignadas:', resAsignadas.status);
+      
+      if (!resAsignadas.ok) {
+        throw new Error(`Error ${resAsignadas.status} al cargar máquinas asignadas`);
+      }
+      
       const asignadasData = await resAsignadas.json();
+      console.log('Datos asignadas:', asignadasData);
       setMaquinasAsignadas(asignadasData);
 
-      // Clientes solo rol cliente
-      const resClientes = await fetch(`${API_URL}/api/Usuario/Cliente`);
+      // Clientes solo rol cliente - URL absoluta con puerto 3000
+      const resClientes = await fetch('http://localhost:3000/api/Usuario/Cliente');
+      console.log('Status clientes:', resClientes.status);
+      
+      if (!resClientes.ok) {
+        throw new Error(`Error ${resClientes.status} al cargar clientes`);
+      }
+      
       const clientesData = await resClientes.json();
+      console.log('Datos clientes:', clientesData);
       setClientes(clientesData);
+
+      console.log('Todos los datos cargados exitosamente');
+
     } catch (error) {
-      console.error("Error al cargar datos:", error);
+      console.error("Error completo al cargar datos:", error);
+      setError(error instanceof Error ? error.message : "Error desconocido al cargar datos");
     }
   };
 
@@ -86,7 +113,12 @@ export default function AsignarMaquina() {
     
     // Obtener el cliente actual de la máquina
     try {
-      const res = await fetch(`${API_URL}/api/Maquina-Cliente/cliente-actual?maquina_id=${maquinaId}`);
+      const res = await fetch(`http://localhost:3000/api/Maquina-Cliente/cliente-actual?maquina_id=${maquinaId}`);
+      
+      if (!res.ok) {
+        throw new Error(`Error ${res.status} al obtener cliente actual`);
+      }
+      
       const data = await res.json();
       setClienteActual(data);
     } catch (error) {
@@ -104,7 +136,7 @@ export default function AsignarMaquina() {
 
     setLoading(true);
     try {
-      const res = await fetch(`${API_URL}/api/Maquina-Cliente/asignar`, {
+      const res = await fetch('http://localhost:3000/api/Maquina-Cliente/asignar', {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -114,12 +146,16 @@ export default function AsignarMaquina() {
       });
 
       const data = await res.json();
-      if (!res.ok) throw new Error(data.error || "Error desconocido");
+      
+      if (!res.ok) {
+        throw new Error(data.error || `Error ${res.status} al asignar máquina`);
+      }
 
       alert("Máquina asignada con éxito.");
       setModalOpen(false);
       fetchData();
     } catch (error: any) {
+      console.error("Error en asignar:", error);
       alert("Error: " + error.message);
     } finally {
       setLoading(false);
@@ -141,7 +177,7 @@ export default function AsignarMaquina() {
 
     setLoading(true);
     try {
-      const res = await fetch(`${API_URL}/api/Maquina-Cliente/reasignar`, {
+      const res = await fetch('http://localhost:3000/api/Maquina-Cliente/reasignar', {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -151,12 +187,16 @@ export default function AsignarMaquina() {
       });
 
       const data = await res.json();
-      if (!res.ok) throw new Error(data.error || "Error desconocido");
+      
+      if (!res.ok) {
+        throw new Error(data.error || `Error ${res.status} al reasignar máquina`);
+      }
 
       alert("Máquina reasignada con éxito.");
       setModalOpen(false);
       fetchData();
     } catch (error: any) {
+      console.error("Error en reasignar:", error);
       alert("Error: " + error.message);
     } finally {
       setLoading(false);
@@ -218,6 +258,22 @@ export default function AsignarMaquina() {
       </header>
 
       <div className="p-8 space-y-8">
+        {/* Mensaje de error */}
+        {error && (
+          <div className="bg-red-50 border border-red-200 rounded-lg p-4">
+            <div className="flex items-center gap-2 text-red-800">
+              <span className="font-medium">Error:</span>
+              <span>{error}</span>
+            </div>
+            <button 
+              onClick={fetchData}
+              className="mt-2 px-3 py-1 bg-red-100 text-red-700 rounded text-sm hover:bg-red-200"
+            >
+              Reintentar
+            </button>
+          </div>
+        )}
+
         {/* Estadísticas */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
           <div className="bg-white rounded-xl shadow-sm p-6">
