@@ -11,7 +11,7 @@ export const AppDataSource = new DataSource({
   host: process.env.DB_HOST,
   port: Number(process.env.DB_PORT) || 5432,
   username: process.env.DB_USER || 'postgres',
-  password: process.env.DB_PASS || 'oracle',
+  password: process.env.DB_PASS || '1234',
   database: process.env.DB_NAME || 'Maquinas_Poker',
   synchronize: false,
   entities: [Usuario, Proveedor, Repuesto, Maquina, MaquinaCliente],
