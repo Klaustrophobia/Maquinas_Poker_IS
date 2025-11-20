@@ -71,8 +71,7 @@ export default function AdminDashboardPage() {
   const [filtroEstadoMaquina, setFiltroEstadoMaquina] = useState("todos");
   const [busquedaMaquinas, setBusquedaMaquinas] = useState("");
 
-    // Estados para filtros de Proveedores
-  // const [filtroEstado, setFiltroEstado] = useState("todos");
+  // Estados para filtros de Proveedores
   const [busquedaProveedores, setBusquedaProveedores] = useState("");
 
     // Estados para filtros de Repuestos
@@ -187,7 +186,7 @@ export default function AdminDashboardPage() {
         setStats(prev => ({ ...prev, maquinasMantenimiento: enMantenimiento }));
       }
     } catch (error) {
-      console.error("Error:", error);
+      console.error("Error de conexión al intentar cargar maquinas:", error);
       setMaquinas([]);
     } finally {
       setLoadingMaquinas(false);
@@ -205,7 +204,7 @@ export default function AdminDashboardPage() {
         setStats(prev => ({ ...prev, ordenesCompletadas: repuestosArray.length }));
       }
     } catch (error) {
-      console.error("Error:", error);
+      console.error("Error de conexión al intentar cargar repuestos:", error);
       setRepuestos([]);
     } finally {
       setLoadingRepuestos(false);
@@ -229,10 +228,10 @@ export default function AdminDashboardPage() {
         const Administrador = usuariosArray.filter(user => user.rol === "Administrador").length;
         console.log(`Clientes: ${Cliente}, Técnicos: ${Tecnico}, Administradores: ${Administrador}`);
       } else {
-        console.error("Error en la respuesta:", res.status);
+        console.error("Fallo al obtener usuarios:", res.status);
       }
     } catch (error) {
-      console.error("Error:", error);
+      console.error("Error de conexión al intentar cargar usuarios:", error);
       setUsuarios([]);
     } finally {
       setLoadingUsuarios(false);
@@ -376,19 +375,19 @@ const repuestosFiltrados = repuestos
       });
       fetchUsuarios();
     } else {
-      console.log(" ERROR AL CREAR USUARIO");
+      console.log("Error del servidor al crear el usuario");
       let errorData = {};
       try {
         errorData = responseText ? JSON.parse(responseText) : {};
       } catch (e) {
-        console.error("Error parseando respuesta:", e);
+        console.error("Respuesta del servidor no es JSON. Error de formato:", e);
       }
       
-      alert(`Error al crear el usuario  "Revisa la consola para más detalles"`);
+      alert(`Error al ingresar valores para crear usuario.`);
     }
   } catch (error) {
-    console.error(" ERROR DE CONEXIÓN:", error);
-    alert("Error de conexión al crear el usuario");
+    console.error("ERROR DE CONEXIÓN:", error);
+    alert("Error de conexión. No se pudo contactar al servidor.");
   }
 };
 
@@ -468,11 +467,11 @@ const repuestosFiltrados = repuestos
         setMaquinaFormData({ nombre: "", tipo: "", estado: "Fuera de servicio", ubicacion: "", fecha_compra: "", fecha_garantia: "" });
         fetchMaquinas();
       } else {
-        alert("Error al crear la máquina");
+        alert("Error al ingresar valores para crear maquina.");
       }
     } catch (error) {
-      console.error("Error:", error);
-      alert("Error al crear la máquina");
+      console.error("ERROR DE CONEXIÓN::", error);
+      alert("Error de conexión. No se pudo contactar al servidor.");
     }
   };
 
@@ -585,7 +584,7 @@ const repuestosFiltrados = repuestos
       }
     } catch (error) {
       console.error("Error:", error);
-      alert("Error al editar el repuesto");
+      alert("Error de conexión al editar el repuesto");
     }
   };
 
@@ -620,11 +619,11 @@ const repuestosFiltrados = repuestos
         setProveedorFormData({ nombre: "", informacion_contacto: "", direccion: "" });
         fetchProveedores();
       } else {
-        alert("Error al crear el proveedor");
+        alert("Error al ingresar valores para crear proveedor.");
       }
     } catch (error) {
-      console.error("Error:", error);
-      alert("Error al crear el proveedor");
+      console.error("Error de conexion:", error);
+      alert("Error de conexión. No se pudo contactar al servidor.");
     }
   };
 
@@ -647,7 +646,7 @@ const repuestosFiltrados = repuestos
       }
     } catch (error) {
       console.error("Error:", error);
-      alert("Error al editar el proveedor");
+      alert("Error de conexión al editar el proveedor");
     }
   };
 
@@ -660,11 +659,11 @@ const repuestosFiltrados = repuestos
       if (res.ok) {
         fetchProveedores();
       } else {
-        alert("Error al eliminar el proveedor");
+        alert("Error al eliminar el proveedor.");
       }
     } catch (error) {
       console.error("Error:", error);
-      alert("Error al eliminar el proveedor");
+      alert("Error al eliminar el proveedor.");
     }
   };
 
