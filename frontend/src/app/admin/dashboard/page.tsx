@@ -78,6 +78,27 @@ export default function AdminDashboardPage() {
   const [filtroEstadoR, setFiltroEstadoR] = useState("todos");
   const [busquedaRepuestos, setBusquedaRepuestos] = useState("");
   
+  const isUsuarioFormValid = (): boolean => {
+    // Nota: 'contraseña' solo es obligatoria al CREAR un usuario. 
+    // Para la EDICIÓN, si no se cambia la contraseña, el campo puede quedar vacío.
+    
+    const baseValidation = usuarioFormData.nombre_usuario.trim() !== "" &&
+                        usuarioFormData.correo.trim() !== "" &&
+                        usuarioFormData.rol.trim() !== "";
+                        
+    // Si estamos creando, la contraseña es obligatoria
+    if (showAddUsuarioModal) {
+      return baseValidation && usuarioFormData.contraseña.trim() !== "";
+    }
+    
+    // Si estamos editando, solo se requiere la validación base (la contraseña es opcional)
+    if (showEditUsuarioModal) {
+      return baseValidation;
+    }
+    
+    return false;
+  };
+
   // Estados para modales de Máquinas
   const [showAddMaquinaModal, setShowAddMaquinaModal] = useState(false);
   const [showDetailMaquinaModal, setShowDetailMaquinaModal] = useState(false);
@@ -1708,9 +1729,14 @@ const repuestosFiltrados = repuestos
                 </button>
                 <button
                   onClick={handleAddUsuario}
-                  className="flex-1 px-4 py-2 bg-gradient-to-r from-blue-500 to-purple-600 text-white rounded-lg hover:shadow-lg"
+                  disabled={!isUsuarioFormValid()} // <--- Aplicación de la validación
+                  className={`flex-1 px-4 py-2 text-white rounded-lg hover:shadow-lg ${
+                    isUsuarioFormValid() 
+                      ? "bg-gradient-to-r from-blue-500 to-purple-600" // Color activo
+                      : "bg-gray-400 cursor-not-allowed" // Color deshabilitado
+                  }`}
                 >
-                  Crear
+                  Crear Usuario
                 </button>
               </div>
             </div>
@@ -1796,9 +1822,14 @@ const repuestosFiltrados = repuestos
                 </button>
                 <button
                   onClick={handleEditUsuario}
-                  className="flex-1 px-4 py-2 bg-gradient-to-r from-blue-500 to-purple-600 text-white rounded-lg hover:shadow-lg"
+                  disabled={!isUsuarioFormValid()} // <--- Aplicación de la validación
+                  className={`flex-1 px-4 py-2 text-white rounded-lg hover:shadow-lg ${
+                    isUsuarioFormValid() 
+                      ? "bg-gradient-to-r from-blue-500 to-purple-600" // Color activo
+                      : "bg-gray-400 cursor-not-allowed" // Color deshabilitado
+                  }`}
                 >
-                  Guardar
+                  Guardar Cambios
                 </button>
               </div>
             </div>
