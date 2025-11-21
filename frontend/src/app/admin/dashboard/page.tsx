@@ -138,6 +138,13 @@ export default function AdminDashboardPage() {
         repuestoFormData.estado.trim() !== "";
 };
 
+// --- Validación para Proveedores ---
+const isProveedorFormValid = (): boolean => {
+  return proveedorFormData.nombre.trim() !== "" &&
+         proveedorFormData.informacion_contacto.trim() !== "" &&
+         proveedorFormData.direccion.trim() !== "";
+};
+
   // Estados para modales de Máquinas
   const [showAddMaquinaModal, setShowAddMaquinaModal] = useState(false);
   const [showDetailMaquinaModal, setShowDetailMaquinaModal] = useState(false);
@@ -2000,7 +2007,12 @@ const repuestosFiltrados = repuestos
                 </button>
                 <button
                   onClick={handleAddProveedor}
-                  className="flex-1 px-4 py-2 bg-gradient-to-r from-blue-500 to-purple-600 text-white rounded-lg hover:shadow-lg"
+                  disabled={!isProveedorFormValid()} // <-- Control de deshabilitado
+                  className={`flex-1 px-4 py-2 text-white rounded-lg hover:shadow-lg ${
+                    isProveedorFormValid()
+                      ? "bg-gradient-to-r from-blue-500 to-purple-600" // Color Activo
+                      : "bg-gray-400 cursor-not-allowed" // Color Deshabilitado (Gris)
+                  }`}
                 >
                   Crear
                 </button>
@@ -2061,7 +2073,12 @@ const repuestosFiltrados = repuestos
                 </button>
                 <button
                   onClick={handleEditProveedor}
-                  className="flex-1 px-4 py-2 bg-gradient-to-r from-blue-500 to-purple-600 text-white rounded-lg hover:shadow-lg"
+                  disabled={!isProveedorFormValid()} // <-- Control de deshabilitado
+                  className={`flex-1 px-4 py-2 text-white rounded-lg hover:shadow-lg ${
+                    isProveedorFormValid()
+                      ? "bg-gradient-to-r from-blue-500 to-purple-600" // Color Activo
+                      : "bg-gray-400 cursor-not-allowed" // Color Deshabilitado (Gris)
+                  }`}
                 >
                   Guardar
                 </button>
