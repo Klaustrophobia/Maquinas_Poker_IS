@@ -1,7 +1,7 @@
 'use client'; 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useRouter } from "next/navigation";
-import { useAuth } from "../context/AuthContext"; // Ajusta la ruta según tu estructura
+import { useAuth } from "../context/AuthContext";
 
 export default function LoginPage() {
   const [correo, setCorreo] = useState("");
@@ -9,8 +9,13 @@ export default function LoginPage() {
   const [mensaje, setMensaje] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
+  const [isMounted, setIsMounted] = useState(false);
   const router = useRouter();
-  const { login } = useAuth(); // Usamos el hook useAuth
+  const { login } = useAuth();
+
+  useEffect(() => {
+    setIsMounted(true);
+  }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -29,11 +34,7 @@ export default function LoginPage() {
       const data = await res.json();
       
       if (res.ok) {
-        // Guardar en localStorage temporal para la verificación
         localStorage.setItem("correoLogin", correo);
-        
-        // NOTA: En este punto solo guardamos el correo temporalmente
-        // La autenticación completa se hará en verify/page.tsx después del código
         setMensaje("Código enviado a tu correo");
         setTimeout(() => router.push("/verify"), 1500);
       } else {
@@ -47,9 +48,20 @@ export default function LoginPage() {
     }
   };
 
+  // Evitar renderizado hasta que esté montado en el cliente
+  if (!isMounted) {
+    return (
+      <div className="flex items-center justify-center min-h-screen bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50">
+        <div className="relative bg-white/80 backdrop-blur-lg p-8 rounded-2xl shadow-xl w-full max-w-md">
+          <div className="animate-pulse text-center">Cargando...</div>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="flex items-center justify-center min-h-screen bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50">
-      {/* Decorative elements */}
+      {/* Decorative elements - Con clases CSS puras */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
         <div className="absolute -top-40 -right-40 w-80 h-80 bg-purple-300 rounded-full mix-blend-multiply filter blur-xl opacity-70 animate-blob"></div>
         <div className="absolute -bottom-40 -left-40 w-80 h-80 bg-blue-300 rounded-full mix-blend-multiply filter blur-xl opacity-70 animate-blob animation-delay-2000"></div>
@@ -182,23 +194,6 @@ export default function LoginPage() {
           </a>
         </p>
       </div>
-
-      <style jsx>{`
-        @keyframes blob {
-          0%, 100% { transform: translate(0, 0) scale(1); }
-          33% { transform: translate(30px, -50px) scale(1.1); }
-          66% { transform: translate(-20px, 20px) scale(0.9); }
-        }
-        .animate-blob {
-          animation: blob 7s infinite;
-        }
-        .animation-delay-2000 {
-          animation-delay: 2s;
-        }
-        .animation-delay-4000 {
-          animation-delay: 4s;
-        }
-      `}</style>
     </div>
   );
 }
