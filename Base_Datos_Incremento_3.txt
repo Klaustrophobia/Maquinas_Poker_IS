@@ -1,0 +1,46 @@
+
+-- Eliminar la tabla existente
+DROP TABLE IF EXISTS public.recibos;
+
+-- Crear la tabla nueva con lote_recibo como BIGINT
+CREATE TABLE IF NOT EXISTS public.recibos
+(
+    id bigint NOT NULL GENERATED ALWAYS AS IDENTITY ( INCREMENT 1 START 1 MINVALUE 1 MAXVALUE 9223372036854775807 CACHE 1 ),
+    cliente_id bigint,
+    maquina_id bigint,
+    fecha_recibo timestamp with time zone DEFAULT now(),
+    ingreso numeric DEFAULT 0,
+    egreso numeric DEFAULT 0,
+    total numeric DEFAULT 0,
+    fecha_creacion timestamp with time zone DEFAULT now(),
+    lote_recibo bigint NOT NULL, -- CAMBIO: Ahora es BIGINT y NOT NULL
+    CONSTRAINT recibos_pkey PRIMARY KEY (id),
+    CONSTRAINT recibos_cliente_id_fkey FOREIGN KEY (cliente_id)
+        REFERENCES public.usuarios (id) MATCH SIMPLE
+        ON UPDATE NO ACTION
+        ON DELETE NO ACTION,
+    CONSTRAINT recibos_maquina_id_fkey FOREIGN KEY (maquina_id)
+        REFERENCES public.maquinas (id) MATCH SIMPLE
+        ON UPDATE NO ACTION
+        ON DELETE NO ACTION
+)
+
+TABLESPACE pg_default;
+
+ALTER TABLE IF EXISTS public.recibos
+    OWNER to postgres;
+
+-- Recrear el índice
+CREATE INDEX IF NOT EXISTS idx_recibos_fecha
+    ON public.recibos USING btree
+    (fecha_recibo ASC NULLS LAST)
+    TABLESPACE pg_default;
+
+-- Crear índice para lote_recibo
+CREATE INDEX IF NOT EXISTS idx_recibos_lote
+    ON public.recibos USING btree
+    (lote_recibo ASC NULLS LAST)
+    TABLESPACE pg_default;
+
+-- crear secuencia:
+CREATE SEQUENCE lote_recibo_seq START 1000 INCREMENT 1;
