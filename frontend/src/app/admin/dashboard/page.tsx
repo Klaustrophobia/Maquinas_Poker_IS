@@ -99,6 +99,16 @@ export default function AdminDashboardPage() {
     return false;
   };
 
+  // --- Validación para Máquinas ---
+  const isMaquinaFormValid = (): boolean => {
+   return maquinaFormData.nombre.trim() !== "" &&
+          maquinaFormData.tipo.trim() !== "" &&
+          maquinaFormData.estado.trim() !== "" &&
+          maquinaFormData.ubicacion.trim() !== "" &&
+          maquinaFormData.fecha_compra.trim() !== "" &&
+          maquinaFormData.fecha_garantia.trim() !== "";
+  };
+
   // Estados para modales de Máquinas
   const [showAddMaquinaModal, setShowAddMaquinaModal] = useState(false);
   const [showDetailMaquinaModal, setShowDetailMaquinaModal] = useState(false);
@@ -1736,7 +1746,7 @@ const repuestosFiltrados = repuestos
                       : "bg-gray-400 cursor-not-allowed" // Color deshabilitado
                   }`}
                 >
-                  Crear Usuario
+                  Crear
                 </button>
               </div>
             </div>
@@ -1829,7 +1839,7 @@ const repuestosFiltrados = repuestos
                       : "bg-gray-400 cursor-not-allowed" // Color deshabilitado
                   }`}
                 >
-                  Guardar Cambios
+                  Guardar
                 </button>
               </div>
             </div>
@@ -2118,7 +2128,12 @@ const repuestosFiltrados = repuestos
                 </button>
                 <button
                   onClick={handleAddMaquina}
-                  className="flex-1 px-4 py-2 bg-gradient-to-r from-blue-500 to-purple-600 text-white rounded-lg hover:shadow-lg"
+                  disabled={!isMaquinaFormValid()} // <-- Control de deshabilitado
+                  className={`flex-1 px-4 py-2 text-white rounded-lg hover:shadow-lg ${
+                    isMaquinaFormValid() 
+                      ? "bg-gradient-to-r from-blue-500 to-purple-600" // Color Activo
+                      : "bg-gray-400 cursor-not-allowed" // Color Deshabilitado (Gris)
+                  }`}
                 >
                   Crear
                 </button>
@@ -2302,7 +2317,12 @@ const repuestosFiltrados = repuestos
                 </button>
                 <button
                   onClick={handleEditMaquina}
-                  className="flex-1 px-4 py-2 bg-gradient-to-r from-blue-500 to-purple-600 text-white rounded-lg hover:shadow-lg"
+                  disabled={!isMaquinaFormValid()} // <-- Control de deshabilitado
+                  className={`flex-1 px-4 py-2 text-white rounded-lg hover:shadow-lg ${
+                    isMaquinaFormValid() 
+                      ? "bg-gradient-to-r from-blue-500 to-purple-600" // Color Activo
+                      : "bg-gray-400 cursor-not-allowed" // Color Deshabilitado (Gris)
+                  }`}
                 >
                   Guardar
                 </button>
