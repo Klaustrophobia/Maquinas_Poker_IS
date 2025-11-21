@@ -109,6 +109,35 @@ export default function AdminDashboardPage() {
           maquinaFormData.fecha_garantia.trim() !== "";
   };
 
+  // Función para preparar el modal de edición de Repuestos
+  const handleOpenEditRepuesto = (repuesto: Repuesto) => {
+ // 1. Cargar los datos del repuesto seleccionado al estado del formulario
+     setRepuestoFormData({
+       nombre: repuesto.nombre,
+       proveedor_id: repuesto.proveedor_id ? String(repuesto.proveedor_id) : "",
+       cantidad: String(repuesto.cantidad), 
+       ubicacion: repuesto.ubicacion,
+       estado: repuesto.estado,
+       });
+     // 2. Guardar el repuesto seleccionado (ya lo tienes, pero es buena práctica)
+     setSelectedRepuesto(repuesto); 
+     // 3. Cerrar el modal de detalle
+     setShowDetailRepuestoModal(false);
+     // 4. Abrir el modal de edición
+     setShowEditRepuestoModal(true);
+  };
+
+  // --- Validación para Repuestos ---
+  const isRepuestoFormValid = (): boolean => {
+    return repuestoFormData.nombre.trim() !== "" &&
+        // El proveedor_id puede ser un string vacío si no se selecciona nada
+        repuestoFormData.proveedor_id.trim() !== "" &&
+        // cantidad puede ser "0" o un número, pero debe ser un string no vacío
+        repuestoFormData.cantidad.trim() !== "" && 
+        repuestoFormData.ubicacion.trim() !== "" &&
+        repuestoFormData.estado.trim() !== "";
+};
+
   // Estados para modales de Máquinas
   const [showAddMaquinaModal, setShowAddMaquinaModal] = useState(false);
   const [showDetailMaquinaModal, setShowDetailMaquinaModal] = useState(false);
@@ -2415,7 +2444,12 @@ const repuestosFiltrados = repuestos
                 </button>
                 <button
                   onClick={handleAddRepuesto}
-                  className="flex-1 px-4 py-2 bg-gradient-to-r from-blue-500 to-purple-600 text-white rounded-lg hover:shadow-lg"
+                  disabled={!isRepuestoFormValid()} // <-- Control de deshabilitado
+                  className={`flex-1 px-4 py-2 text-white rounded-lg hover:shadow-lg ${
+                    isRepuestoFormValid() 
+                      ? "bg-gradient-to-r from-blue-500 to-purple-600" // Color Activo
+                      : "bg-gray-400 cursor-not-allowed" // Color Deshabilitado (Gris)
+                  }`}
                 >
                   Crear
                 </button>
@@ -2471,31 +2505,21 @@ const repuestosFiltrados = repuestos
                   <p className="text-gray-900 font-medium">{selectedRepuesto.ubicacion || "No especificada"}</p>
                 </div>
               </div>
-              <div className="flex gap-3 mt-6">
+              <div className="flex justify-end space-x-3 mt-6">
                 <button
-                  onClick={() => setShowDetailRepuestoModal(false)}
-                  className="flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50"
-                >
-                  Cerrar
+                 onClick={() => setShowDetailRepuestoModal(false)}
+                 className="px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 text-black"
+                 >
+                 Cerrar
                 </button>
-                <button 
-                  onClick={() => {
-                    setRepuestoFormData({
-                      nombre: selectedRepuesto.nombre,
-                      proveedor_id: selectedRepuesto.proveedor_id.toString(), // Convertir number a string
-                      cantidad: selectedRepuesto.cantidad.toString(),
-                      ubicacion: selectedRepuesto.ubicacion,
-                      estado: selectedRepuesto.estado,
-                    });
-                    setShowDetailRepuestoModal(false);
-                    setShowEditRepuestoModal(true);
-                  }}
-                  className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 flex items-center justify-center gap-2"
-                >
-                  <Edit2 className="w-4 h-4" />
-                  Editar
+                <button
+                 onClick={() => selectedRepuesto && handleOpenEditRepuesto(selectedRepuesto)} // <-- Usar la nueva función
+                 className="px-4 py-2 bg-gradient-to-r from-blue-500 to-purple-600 text-white rounded-lg hover:shadow-lg font-medium flex items-center gap-2"
+                 >
+                 <Edit2 className="w-5 h-5" />
+                 Editar
                 </button>
-                <button 
+                <button
                   onClick={() => {
                     setShowDetailRepuestoModal(false);
                     handleDeleteRepuesto(selectedRepuesto.id);
@@ -2534,16 +2558,22 @@ const repuestosFiltrados = repuestos
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Proveedor *</label>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Proveedor *</label>
                 <select
                   required
-                  value={repuestoFormData.proveedor_id}
+                  // ASEGURA que el valor del select es el ID del proveedor (como string)
+                  value={repuestoFormData.proveedor_id} 
                   onChange={(e) => setRepuestoFormData({ ...repuestoFormData, proveedor_id: e.target.value })}
                   className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 text-black"
                 >
-                  <option value="">Seleccionar...</option>
+                  <option value="">Selecciona un proveedor</option>
+                  {/* Mapea la lista de proveedores */}
                   {proveedores.map((p) => (
-                    <option key={p.id} value={p.id}>
+                    <option 
+                      key={p.id} 
+                      // El value DEBE ser el ID del proveedor como STRING
+                      value={String(p.id)}
+                    >
                       {p.nombre}
                     </option>
                   ))}
@@ -2594,7 +2624,12 @@ const repuestosFiltrados = repuestos
                 </button>
                 <button
                   onClick={handleEditRepuesto}
-                  className="flex-1 px-4 py-2 bg-gradient-to-r from-blue-500 to-purple-600 text-white rounded-lg hover:shadow-lg"
+                  disabled={!isRepuestoFormValid()} // <-- Control de deshabilitado
+                  className={`flex-1 px-4 py-2 text-white rounded-lg hover:shadow-lg ${
+                    isRepuestoFormValid() 
+                      ? "bg-gradient-to-r from-blue-500 to-purple-600" // Color Activo
+                      : "bg-gray-400 cursor-not-allowed" // Color Deshabilitado (Gris)
+                  }`}
                 >
                   Guardar
                 </button>
