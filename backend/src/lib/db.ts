@@ -6,6 +6,7 @@ import { Repuesto } from "@/entities/Repuesto";
 import { Maquina } from '@/entities/Maquina';
 import { MaquinaCliente } from '@/entities/MaquinaCliente';
 
+
 export const AppDataSource = new DataSource({
   type: 'postgres',
   host: process.env.DB_HOST,

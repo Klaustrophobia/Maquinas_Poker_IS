@@ -72,13 +72,86 @@ export default function AdminDashboardPage() {
   const [busquedaMaquinas, setBusquedaMaquinas] = useState("");
 
     // Estados para filtros de Proveedores
-  // const [filtroEstado, setFiltroEstado] = useState("todos");
   const [busquedaProveedores, setBusquedaProveedores] = useState("");
 
     // Estados para filtros de Repuestos
   const [filtroEstadoR, setFiltroEstadoR] = useState("todos");
   const [busquedaRepuestos, setBusquedaRepuestos] = useState("");
   
+const isUsuarioFormValid = (): boolean => {
+    // Nota: 'contraseña' solo es obligatoria al CREAR un usuario. 
+    // Para la EDICIÓN, si no se cambia la contraseña, el campo puede quedar vacío.
+    
+    const baseValidation = usuarioFormData.nombre_usuario.trim() !== "" &&
+                        usuarioFormData.correo.trim() !== "" &&
+                        usuarioFormData.rol.trim() !== "";
+                        
+    // Si estamos creando, la contraseña es obligatoria
+    if (showAddUsuarioModal) {
+      return baseValidation && usuarioFormData.contraseña.trim() !== "";
+    }
+    
+    // Si estamos editando, solo se requiere la validación base (la contraseña es opcional)
+    if (showEditUsuarioModal) {
+      return baseValidation;
+    }
+    
+    return false;
+  };
+
+  // Función para preparar el modal de edición de Repuestos
+  const handleOpenEditRepuesto = (repuesto: Repuesto) => {
+ // 1. Cargar los datos del repuesto seleccionado al estado del formulario
+     setRepuestoFormData({
+       nombre: repuesto.nombre,
+       proveedor_id: repuesto.proveedor_id ? String(repuesto.proveedor_id) : "",
+       cantidad: String(repuesto.cantidad), 
+       ubicacion: repuesto.ubicacion,
+       estado: repuesto.estado,
+       });
+     // 2. Guardar el repuesto seleccionado (ya lo tienes, pero es buena práctica)
+     setSelectedRepuesto(repuesto); 
+     // 3. Cerrar el modal de detalle
+     setShowDetailRepuestoModal(false);
+     // 4. Abrir el modal de edición
+     setShowEditRepuestoModal(true);
+  };
+
+  // --- Validación para Repuestos ---
+  const isRepuestoFormValid = (): boolean => {
+    return repuestoFormData.nombre.trim() !== "" &&
+        // El proveedor_id puede ser un string vacío si no se selecciona nada
+        repuestoFormData.proveedor_id.trim() !== "" &&
+        // cantidad puede ser "0" o un número, pero debe ser un string no vacío
+        repuestoFormData.cantidad.trim() !== "" && 
+        repuestoFormData.ubicacion.trim() !== "" &&
+        repuestoFormData.estado.trim() !== "";
+};
+
+// --- Validación para Proveedores ---
+const isProveedorFormValid = (): boolean => {
+  return proveedorFormData.nombre.trim() !== "" &&
+         proveedorFormData.informacion_contacto.trim() !== "" &&
+         proveedorFormData.direccion.trim() !== "";
+};
+
+
+
+
+
+   // --- Validación para Máquinas ---
+  const isMaquinaFormValid = (): boolean => {
+   return maquinaFormData.nombre.trim() !== "" &&
+          maquinaFormData.tipo.trim() !== "" &&
+          maquinaFormData.estado.trim() !== "" &&
+          maquinaFormData.ubicacion.trim() !== "" &&
+          maquinaFormData.fecha_compra.trim() !== "" &&
+          maquinaFormData.fecha_garantia.trim() !== "";
+  };
+
+
+
+
   // Estados para modales de Máquinas
   const [showAddMaquinaModal, setShowAddMaquinaModal] = useState(false);
   const [showDetailMaquinaModal, setShowDetailMaquinaModal] = useState(false);
@@ -189,7 +262,7 @@ export default function AdminDashboardPage() {
         setStats(prev => ({ ...prev, maquinasMantenimiento: enMantenimiento }));
       }
     } catch (error) {
-      console.error("Error:", error);
+      console.error("Error de conexión al intentar cargar maquinas:", error);
       setMaquinas([]);
     } finally {
       setLoadingMaquinas(false);
@@ -207,7 +280,7 @@ export default function AdminDashboardPage() {
         setStats(prev => ({ ...prev, ordenesCompletadas: repuestosArray.length }));
       }
     } catch (error) {
-      console.error("Error:", error);
+       console.error("Error de conexión al intentar cargar repuestos:", error);
       setRepuestos([]);
     } finally {
       setLoadingRepuestos(false);
@@ -231,10 +304,10 @@ export default function AdminDashboardPage() {
         const Administrador = usuariosArray.filter(user => user.rol === "Administrador").length;
         console.log(`Clientes: ${Cliente}, Técnicos: ${Tecnico}, Administradores: ${Administrador}`);
       } else {
-        console.error("Error en la respuesta:", res.status);
+        console.error("Fallo al obtener usuarios:", res.status);
       }
     } catch (error) {
-      console.error("Error:", error);
+      console.error("Error de conexión al intentar cargar usuarios:", error);
       setUsuarios([]);
     } finally {
       setLoadingUsuarios(false);
@@ -378,19 +451,19 @@ const repuestosFiltrados = repuestos
       });
       fetchUsuarios();
     } else {
-      console.log(" ERROR AL CREAR USUARIO");
+      console.log("Error del servidor al crear el usuario");
       let errorData = {};
       try {
         errorData = responseText ? JSON.parse(responseText) : {};
       } catch (e) {
-        console.error("Error parseando respuesta:", e);
+        console.error("Respuesta del servidor no es JSON. Error de formato:", e);
       }
       
-      alert(`Error al crear el usuario  "Revisa la consola para más detalles"`);
+       alert(`Error al ingresar valores para crear usuario.`);
     }
   } catch (error) {
     console.error(" ERROR DE CONEXIÓN:", error);
-    alert("Error de conexión al crear el usuario");
+    alert("Error de conexión. No se pudo contactar al servidor.");
   }
 };
 
@@ -470,11 +543,11 @@ const repuestosFiltrados = repuestos
         setMaquinaFormData({ nombre: "", tipo: "", estado: "Fuera de servicio", ubicacion: "", fecha_compra: "", fecha_garantia: "" });
         fetchMaquinas();
       } else {
-        alert("Error al crear la máquina");
+        alert("Error al ingresar valores para crear maquina.");
       }
     } catch (error) {
-      console.error("Error:", error);
-      alert("Error al crear la máquina");
+      console.error("Error de conexion:", error);
+      alert("Error de conexión. No se pudo contactar al servidor.");
     }
   };
 
@@ -587,7 +660,7 @@ const repuestosFiltrados = repuestos
       }
     } catch (error) {
       console.error("Error:", error);
-      alert("Error al editar el repuesto");
+      alert("Error de conexion al editar el repuesto");
     }
   };
 
@@ -622,11 +695,11 @@ const repuestosFiltrados = repuestos
         setProveedorFormData({ nombre: "", informacion_contacto: "", direccion: "" });
         fetchProveedores();
       } else {
-        alert("Error al crear el proveedor");
+        alert("Error al ingresar valores para crear proveedor.");
       }
     } catch (error) {
       console.error("Error:", error);
-      alert("Error al crear el proveedor");
+      alert("Error de conexión. No se pudo contactar al servidor.");
     }
   };
 
@@ -649,7 +722,7 @@ const repuestosFiltrados = repuestos
       }
     } catch (error) {
       console.error("Error:", error);
-      alert("Error al editar el proveedor");
+      alert("Error de conexion al editar el proveedor");
     }
   };
 
@@ -1726,7 +1799,12 @@ const repuestosFiltrados = repuestos
                 </button>
                 <button
                   onClick={handleAddUsuario}
-                  className="flex-1 px-4 py-2 bg-gradient-to-r from-blue-500 to-purple-600 text-white rounded-lg hover:shadow-lg"
+                  disabled={!isUsuarioFormValid()} // <--- Aplicación de la validación
+                  className={`flex-1 px-4 py-2 text-white rounded-lg hover:shadow-lg ${
+                    isUsuarioFormValid() 
+                      ? "bg-gradient-to-r from-blue-500 to-purple-600" // Color activo
+                      : "bg-gray-400 cursor-not-allowed" // Color deshabilitado
+                  }`}
                 >
                   Crear
                 </button>
@@ -1814,7 +1892,12 @@ const repuestosFiltrados = repuestos
                 </button>
                 <button
                   onClick={handleEditUsuario}
-                  className="flex-1 px-4 py-2 bg-gradient-to-r from-blue-500 to-purple-600 text-white rounded-lg hover:shadow-lg"
+                  disabled={!isUsuarioFormValid()} // <--- Aplicación de la validación
+                  className={`flex-1 px-4 py-2 text-white rounded-lg hover:shadow-lg ${
+                    isUsuarioFormValid() 
+                      ? "bg-gradient-to-r from-blue-500 to-purple-600" // Color activo
+                      : "bg-gray-400 cursor-not-allowed" // Color deshabilitado
+                  }`}
                 >
                   Guardar
                 </button>
@@ -1948,7 +2031,12 @@ const repuestosFiltrados = repuestos
                 </button>
                 <button
                   onClick={handleAddProveedor}
-                  className="flex-1 px-4 py-2 bg-gradient-to-r from-blue-500 to-purple-600 text-white rounded-lg hover:shadow-lg"
+                  disabled={!isProveedorFormValid()} // <-- Control de deshabilitado
+                  className={`flex-1 px-4 py-2 text-white rounded-lg hover:shadow-lg ${
+                    isProveedorFormValid()
+                      ? "bg-gradient-to-r from-blue-500 to-purple-600" // Color Activo
+                      : "bg-gray-400 cursor-not-allowed" // Color Deshabilitado (Gris)
+                  }`}
                 >
                   Crear
                 </button>
@@ -2009,7 +2097,12 @@ const repuestosFiltrados = repuestos
                 </button>
                 <button
                   onClick={handleEditProveedor}
-                  className="flex-1 px-4 py-2 bg-gradient-to-r from-blue-500 to-purple-600 text-white rounded-lg hover:shadow-lg"
+                  disabled={!isProveedorFormValid()} // <-- Control de deshabilitado
+                  className={`flex-1 px-4 py-2 text-white rounded-lg hover:shadow-lg ${
+                    isProveedorFormValid()
+                      ? "bg-gradient-to-r from-blue-500 to-purple-600" // Color Activo
+                      : "bg-gray-400 cursor-not-allowed" // Color Deshabilitado (Gris)
+                  }`}
                 >
                   Guardar
                 </button>
@@ -2105,7 +2198,12 @@ const repuestosFiltrados = repuestos
                 </button>
                 <button
                   onClick={handleAddMaquina}
-                  className="flex-1 px-4 py-2 bg-gradient-to-r from-blue-500 to-purple-600 text-white rounded-lg hover:shadow-lg"
+                  disabled={!isMaquinaFormValid()} // <-- Control de deshabilitado
+                  className={`flex-1 px-4 py-2 text-white rounded-lg hover:shadow-lg ${
+                    isMaquinaFormValid() 
+                      ? "bg-gradient-to-r from-blue-500 to-purple-600" // Color Activo
+                      : "bg-gray-400 cursor-not-allowed" // Color Deshabilitado (Gris)
+                  }`}
                 >
                   Crear
                 </button>
@@ -2289,7 +2387,12 @@ const repuestosFiltrados = repuestos
                 </button>
                 <button
                   onClick={handleEditMaquina}
-                  className="flex-1 px-4 py-2 bg-gradient-to-r from-blue-500 to-purple-600 text-white rounded-lg hover:shadow-lg"
+                  disabled={!isMaquinaFormValid()} // <-- Control de deshabilitado
+                  className={`flex-1 px-4 py-2 text-white rounded-lg hover:shadow-lg ${
+                    isMaquinaFormValid() 
+                      ? "bg-gradient-to-r from-blue-500 to-purple-600" // Color Activo
+                      : "bg-gray-400 cursor-not-allowed" // Color Deshabilitado (Gris)
+                  }`}
                 >
                   Guardar
                 </button>
@@ -2382,7 +2485,12 @@ const repuestosFiltrados = repuestos
                 </button>
                 <button
                   onClick={handleAddRepuesto}
-                  className="flex-1 px-4 py-2 bg-gradient-to-r from-blue-500 to-purple-600 text-white rounded-lg hover:shadow-lg"
+                  disabled={!isRepuestoFormValid()} // <-- Control de deshabilitado
+                  className={`flex-1 px-4 py-2 text-white rounded-lg hover:shadow-lg ${
+                    isRepuestoFormValid() 
+                      ? "bg-gradient-to-r from-blue-500 to-purple-600" // Color Activo
+                      : "bg-gray-400 cursor-not-allowed" // Color Deshabilitado (Gris)
+                  }`}
                 >
                   Crear
                 </button>
@@ -2438,29 +2546,19 @@ const repuestosFiltrados = repuestos
                   <p className="text-gray-900 font-medium">{selectedRepuesto.ubicacion || "No especificada"}</p>
                 </div>
               </div>
-              <div className="flex gap-3 mt-6">
+              <div className="flex justify-end space-x-3 mt-6">
                 <button
                   onClick={() => setShowDetailRepuestoModal(false)}
-                  className="flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50"
-                >
+                 className="px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 text-black"
+                 >
                   Cerrar
                 </button>
-                <button 
-                  onClick={() => {
-                   setRepuestoFormData({
-                      nombre: selectedRepuesto.nombre,
-                      proveedor_id: selectedRepuesto.proveedor_id?.toString() || "", // Usa optional chaining
-                      cantidad: selectedRepuesto.cantidad?.toString() || "0", // También seguro para cantidad
-                      ubicacion: selectedRepuesto.ubicacion || "",
-                      estado: selectedRepuesto.estado || "",
-                    });
-                   setShowDetailRepuestoModal(false);
-                   setShowEditRepuestoModal(true);
-                  }}
-                  className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 flex items-center justify-center gap-2"
-                    >
-                    <Edit2 className="w-4 h-4" />
-                  Editar
+                <button
+                 onClick={() => selectedRepuesto && handleOpenEditRepuesto(selectedRepuesto)} // <-- Usar la nueva función
+                 className="px-4 py-2 bg-gradient-to-r from-blue-500 to-purple-600 text-white rounded-lg hover:shadow-lg font-medium flex items-center gap-2"
+                 >
+                 <Edit2 className="w-5 h-5" />
+                 Editar
                 </button>
                 <button 
                   onClick={() => {
@@ -2504,13 +2602,19 @@ const repuestosFiltrados = repuestos
                 <label className="block text-sm font-medium text-gray-700 mb-1">Proveedor *</label>
                 <select
                   required
+                  // ASEGURA que el valor del select es el ID del proveedor (como string)
                   value={repuestoFormData.proveedor_id}
                   onChange={(e) => setRepuestoFormData({ ...repuestoFormData, proveedor_id: e.target.value })}
                   className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 text-black"
                 >
-                  <option value="">Seleccionar...</option>
+                  <option value="">Selecciona un proveedor</option>
+                  {/* Mapea la lista de proveedores */}
                   {proveedores.map((p) => (
-                    <option key={p.id} value={p.id}>
+                    <option 
+                      key={p.id} 
+                      // El value DEBE ser el ID del proveedor como STRING
+                      value={String(p.id)}
+                    >
                       {p.nombre}
                     </option>
                   ))}
@@ -2561,7 +2665,12 @@ const repuestosFiltrados = repuestos
                 </button>
                 <button
                   onClick={handleEditRepuesto}
-                  className="flex-1 px-4 py-2 bg-gradient-to-r from-blue-500 to-purple-600 text-white rounded-lg hover:shadow-lg"
+                  disabled={!isRepuestoFormValid()} // <-- Control de deshabilitado
+                  className={`flex-1 px-4 py-2 text-white rounded-lg hover:shadow-lg ${
+                    isRepuestoFormValid() 
+                      ? "bg-gradient-to-r from-blue-500 to-purple-600" // Color Activo
+                      : "bg-gray-400 cursor-not-allowed" // Color Deshabilitado (Gris)
+                  }`}
                 >
                   Guardar
                 </button>
