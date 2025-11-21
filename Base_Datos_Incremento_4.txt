@@ -1,0 +1,166 @@
+-- Eliminar la tabla existente si ya existe
+DROP TABLE IF EXISTS public.lotes_recibos;
+
+-- Crear tabla de lotes de recibos con los nuevos campos
+CREATE TABLE IF NOT EXISTS public.lotes_recibos
+(
+    id bigint NOT NULL, -- Será el lote_recibo
+    cliente_id bigint NOT NULL,
+    fecha_recibo timestamp with time zone DEFAULT now(),
+    ingreso numeric DEFAULT 0,
+    egreso numeric DEFAULT 0,
+    total numeric DEFAULT 0,
+    parte_empresa numeric DEFAULT 0, -- Nuevo campo: 60% del total
+    parte_cliente numeric DEFAULT 0, -- Nuevo campo: 40% del total
+    fecha_creacion timestamp with time zone DEFAULT now(),
+    cantidad_recibos integer DEFAULT 0, -- Número de recibos en este lote
+    CONSTRAINT lotes_recibos_pkey PRIMARY KEY (id),
+    CONSTRAINT lotes_recibos_cliente_id_fkey FOREIGN KEY (cliente_id)
+        REFERENCES public.usuarios (id) MATCH SIMPLE
+        ON UPDATE NO ACTION
+        ON DELETE NO ACTION
+)
+
+TABLESPACE pg_default;
+
+ALTER TABLE IF EXISTS public.lotes_recibos
+    OWNER to postgres;
+
+-- Crear índices para mejor performance
+CREATE INDEX IF NOT EXISTS idx_lotes_recibos_cliente
+    ON public.lotes_recibos USING btree
+    (cliente_id ASC NULLS LAST)
+    TABLESPACE pg_default;
+
+CREATE INDEX IF NOT EXISTS idx_lotes_recibos_fecha
+    ON public.lotes_recibos USING btree
+    (fecha_recibo ASC NULLS LAST)
+    TABLESPACE pg_default;
+
+-- Poblar la tabla con los datos agrupados de la tabla recibos
+INSERT INTO public.lotes_recibos (
+    id,
+    cliente_id,
+    fecha_recibo,
+    ingreso,
+    egreso,
+    total,
+    parte_empresa,
+    parte_cliente,
+    cantidad_recibos,
+    fecha_creacion
+)
+SELECT 
+    lote_recibo as id,
+    cliente_id,
+    MAX(fecha_recibo) as fecha_recibo,
+    SUM(ingreso) as ingreso,
+    SUM(egreso) as egreso,
+    SUM(total) as total,
+    SUM(total) * 0.60 as parte_empresa, -- 60% del total
+    SUM(total) * 0.40 as parte_cliente, -- 40% del total
+    COUNT(*) as cantidad_recibos,
+    MAX(fecha_creacion) as fecha_creacion
+FROM public.recibos
+GROUP BY lote_recibo, cliente_id
+ORDER BY lote_recibo;
+
+
+
+
+
+-- Eliminar el trigger existente si existe
+DROP TRIGGER IF EXISTS trg_actualizar_lote_recibo ON public.recibos;
+DROP FUNCTION IF EXISTS actualizar_lote_recibo();
+
+-- Función para actualizar lotes_recibos con los nuevos campos
+CREATE OR REPLACE FUNCTION actualizar_lote_recibo()
+RETURNS TRIGGER AS $$
+BEGIN
+    -- Si es DELETE, necesitamos recalcular el lote completo
+    IF (TG_OP = 'DELETE') THEN
+        -- Eliminar registro existente del lote
+        DELETE FROM public.lotes_recibos WHERE id = OLD.lote_recibo;
+        
+        -- Reinsertar solo si todavía existen recibos para este lote
+        INSERT INTO public.lotes_recibos (
+            id, cliente_id, fecha_recibo, ingreso, egreso, total, 
+            parte_empresa, parte_cliente, cantidad_recibos, fecha_creacion
+        )
+        SELECT 
+            lote_recibo,
+            cliente_id,
+            MAX(fecha_recibo),
+            SUM(ingreso),
+            SUM(egreso),
+            SUM(total),
+            SUM(total) * 0.60 as parte_empresa, -- 60% del total
+            SUM(total) * 0.40 as parte_cliente, -- 40% del total
+            COUNT(*),
+            MAX(fecha_creacion)
+        FROM public.recibos
+        WHERE lote_recibo = OLD.lote_recibo
+        GROUP BY lote_recibo, cliente_id;
+        
+        RETURN OLD;
+    
+    -- Si es INSERT o UPDATE
+    ELSE
+        -- Eliminar registro existente del lote si existe
+        DELETE FROM public.lotes_recibos WHERE id = NEW.lote_recibo;
+        
+        -- Insertar/actualizar con los nuevos datos agrupados
+        INSERT INTO public.lotes_recibos (
+            id, cliente_id, fecha_recibo, ingreso, egreso, total,
+            parte_empresa, parte_cliente, cantidad_recibos, fecha_creacion
+        )
+        SELECT 
+            lote_recibo,
+            cliente_id,
+            MAX(fecha_recibo),
+            SUM(ingreso),
+            SUM(egreso),
+            SUM(total),
+            SUM(total) * 0.60 as parte_empresa, -- 60% del total
+            SUM(total) * 0.40 as parte_cliente, -- 40% del total
+            COUNT(*),
+            MAX(fecha_creacion)
+        FROM public.recibos
+        WHERE lote_recibo = NEW.lote_recibo
+        GROUP BY lote_recibo, cliente_id;
+        
+        RETURN NEW;
+    END IF;
+END;
+$$ LANGUAGE plpgsql;
+
+-- Crear el trigger
+CREATE TRIGGER trg_actualizar_lote_recibo
+    AFTER INSERT OR UPDATE OR DELETE ON public.recibos
+    FOR EACH ROW
+    EXECUTE FUNCTION actualizar_lote_recibo();
+
+
+-- Verificar los datos insertados con los nuevos campos
+SELECT 
+    id,
+    cliente_id,
+    total,
+    parte_empresa,
+    parte_cliente,
+    ROUND(parte_empresa + parte_cliente, 2) as suma_partes,
+    cantidad_recibos
+FROM public.lotes_recibos 
+ORDER BY id;
+
+-- Verificar que los cálculos sean correctos
+SELECT 
+    id,
+    total,
+    parte_empresa,
+    parte_cliente,
+    ROUND(parte_empresa / total * 100, 2) as porcentaje_empresa,
+    ROUND(parte_cliente / total * 100, 2) as porcentaje_cliente
+FROM public.lotes_recibos 
+WHERE total > 0
+ORDER BY id;
