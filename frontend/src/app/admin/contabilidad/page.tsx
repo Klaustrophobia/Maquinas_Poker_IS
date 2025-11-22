@@ -1,6 +1,6 @@
 "use client";
 import { useState, useEffect } from "react";
-import { Menu, X, Home, Users, Package, Wrench, Truck, LogOut, FileText, Clipboard, Trash2, Plus, Calendar, DollarSign, User, Filter, History, Printer, ArrowLeft, Download } from "lucide-react";
+import { Menu, X, Home, Users, Package, Wrench, Truck, LogOut, FileText, Clipboard, Trash2, Plus, Calendar, DollarSign, User, Filter, History, Printer, ArrowLeft } from "lucide-react";
 import { useAuth } from "@/app/context/AuthContext";
 import { useRouter } from "next/navigation";
 
@@ -72,7 +72,6 @@ export default function ContabilidadPage() {
   const [recibosFiltrados, setRecibosFiltrados] = useState<ReciboExistente[]>([]);
   const [reciboParaImprimir, setReciboParaImprimir] = useState<ReciboExistente | null>(null);
   const [showPrintModal, setShowPrintModal] = useState(false);
-  const [descargandoPDF, setDescargandoPDF] = useState(false);
 
   const menuItems = [
     { id: "dashboard", label: "Dashboard", icon: Home, href: "/admin/dashboard" },
@@ -188,11 +187,11 @@ export default function ContabilidadPage() {
   };
 
   const actualizarValorMaquina = (maquinaId: number, campo: keyof MaquinaRecibo, valor: string) => {
-
-    if (Number(valor) < 0) {
-      valor = "0";
-    }
-
+    
+    let n = parseFloat(valor);
+    if (isNaN(n) || n < 0) n = 0;
+    valor = n.toString();
+    
     setMaquinasRecibo(maquinasRecibo.map(maquina => {
       if (maquina.maquina_id === maquinaId) {
         const updated = { ...maquina, [campo]: valor };
@@ -292,68 +291,6 @@ export default function ContabilidadPage() {
 
   const imprimirRecibo = () => {
     window.print();
-  };
-
-  const loadScript = (src: string): Promise<void> => {
-    return new Promise((resolve, reject) => {
-      if ((window as any)[src.split('/').pop()?.split('.')[0]]) {
-        resolve();
-        return;
-      }
-      const script = document.createElement('script');
-      script.src = src;
-      script.onload = () => resolve();
-      script.onerror = () => reject(new Error(`Failed to load script: ${src}`));
-      document.head.appendChild(script);
-    });
-  };
-
-  const descargarPDFRecibo = async () => {
-    if (!reciboParaImprimir) return;
-    
-    setDescargandoPDF(true);
-    try {
-      await loadScript('https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js');
-      await loadScript('https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js');
-      
-      const element = document.getElementById('pdf-content-admin');
-      if (!element) {
-        throw new Error('Elemento de contenido no encontrado');
-      }
-      
-      const canvas = await (window as any).html2canvas(element, {
-        scale: 2,
-        useCORS: true,
-        backgroundColor: '#ffffff'
-      });
-      
-      const imgData = canvas.toDataURL('image/png');
-      const jsPDFModule = (window as any).jspdf;
-      const pdf = new jsPDFModule.jsPDF('p', 'mm', 'a4');
-      
-      const imgWidth = 210;
-      const pageHeight = 297;
-      const imgHeight = (canvas.height * imgWidth) / canvas.width;
-      let heightLeft = imgHeight;
-      let position = 0;
-      
-      pdf.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeight);
-      heightLeft -= pageHeight;
-      
-      while (heightLeft >= 0) {
-        position = heightLeft - imgHeight;
-        pdf.addPage();
-        pdf.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeight);
-        heightLeft -= pageHeight;
-      }
-      
-      pdf.save(`recibo-${reciboParaImprimir.lote_recibo}.pdf`);
-    } catch (error) {
-      console.error('Error al generar PDF:', error);
-      alert('Error al generar el PDF. Por favor intenta nuevamente.');
-    } finally {
-      setDescargandoPDF(false);
-    }
   };
 
   const handleLogout = () => {
@@ -848,7 +785,7 @@ export default function ContabilidadPage() {
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4 print:bg-white">
           <div className="bg-white rounded-xl shadow-2xl w-full max-w-4xl max-h-[90vh] overflow-y-auto print:shadow-none print:max-w-full print:max-h-full">
             {/* Botones de acción - Solo visible en pantalla */}
-            <div className="flex justify-between items-center p-6 border-b border-gray-200 print:hidden sticky top-0 bg-white">
+            <div className="flex justify-between items-center p-6 border-b border-gray-200 print:hidden">
               <h3 className="text-xl font-bold text-gray-900">Vista Previa del Recibo</h3>
               <div className="flex gap-3">
                 <button
@@ -857,14 +794,6 @@ export default function ContabilidadPage() {
                 >
                   <Printer className="w-4 h-4" />
                   Imprimir
-                </button>
-                <button
-                  onClick={descargarPDFRecibo}
-                  disabled={descargandoPDF}
-                  className="px-4 py-2 bg-gradient-to-r from-blue-500 to-blue-600 text-white rounded-lg hover:shadow-lg transition-all font-medium flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
-                >
-                  <Download className="w-4 h-4" />
-                  {descargandoPDF ? "Descargando..." : "Descargar PDF"}
                 </button>
                 <button
                   onClick={() => setShowPrintModal(false)}
@@ -876,7 +805,7 @@ export default function ContabilidadPage() {
             </div>
 
             {/* Contenido del Recibo para Imprimir */}
-            <div id="pdf-content-admin" className="p-8 print:p-12">
+            <div className="p-8 print:p-12">
               {/* Encabezado */}
               <div className="text-center mb-8 border-b-2 border-gray-300 pb-6">
                 <h1 className="text-3xl font-bold text-gray-900 mb-2">RECIBO DE MÁQUINAS</h1>

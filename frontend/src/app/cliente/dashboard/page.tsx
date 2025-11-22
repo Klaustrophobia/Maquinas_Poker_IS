@@ -1,10 +1,10 @@
 "use client";
 import React, { useState, useEffect } from "react";
-import { Menu, X, Home, Wrench, FileText, LogOut, Plus, Eye, Search, Download, Calendar, User, DollarSign, Package, Clock, Building, Users, Filter, Mail } from "lucide-react";
+import { Menu, X, Home, Wrench, FileText, LogOut, Plus, Eye, Search, Download, Calendar, User, DollarSign, Package, Clock, Building, Users, Filter, Mail, Printer } from "lucide-react";
 import { useAuth } from "@/app/context/AuthContext";
 import { useRouter } from "next/navigation";
 
-// Interfaces para tipado
+// ... (mantener todas las interfaces igual que en el código original)
 interface Maquina {
   id: number;
   nombre: string;
@@ -66,7 +66,6 @@ interface MenuItem {
   icon: React.ComponentType<any>;
 }
 
-// Interface para el usuario completo desde la API
 interface UsuarioCompleto {
   id: number;
   nombre_usuario: string;
@@ -74,7 +73,7 @@ interface UsuarioCompleto {
   rol: string;
 }
 
-// Modal de Detalle
+// Modal de Detalle (mantener igual)
 const ModalDetalleLote: React.FC<{
   lote: LoteRecibo | null;
   isOpen: boolean;
@@ -87,35 +86,25 @@ const ModalDetalleLote: React.FC<{
   const [errorCliente, setErrorCliente] = useState<string | null>(null);
   const backendUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3000";
 
-  // Efecto para cargar la información del cliente cuando se abre el modal
   useEffect(() => {
     const fetchClienteInfo = async () => {
-      if (!lote || !lote.cliente_id) {
-        console.log('No hay lote o cliente_id:', lote);
-        return;
-      }
+      if (!lote || !lote.cliente_id) return;
       
       setCargandoCliente(true);
       setErrorCliente(null);
       try {
-        console.log('Buscando cliente con ID:', lote.cliente_id);
         const res = await fetch(`${backendUrl}/api/Usuario/${lote.cliente_id}`);
-        
-        console.log('Respuesta de la API:', res.status, res.statusText);
         
         if (res.ok) {
           const data = await res.json();
-          console.log('Datos del cliente recibidos:', data);
           setClienteInfo(data);
         } else {
-          const errorText = await res.text();
-          console.error('Error en respuesta de API:', res.status, errorText);
-          setErrorCliente(`Error ${res.status}: No se pudo cargar la información del cliente`);
+          setErrorCliente(`Error: No se pudo cargar la información del cliente`);
           setClienteInfo(null);
         }
       } catch (error) {
         console.error('Error fetching cliente info:', error);
-        setErrorCliente('Error de conexión al cargar información del cliente');
+        setErrorCliente('Error de conexión');
         setClienteInfo(null);
       } finally {
         setCargandoCliente(false);
@@ -125,7 +114,6 @@ const ModalDetalleLote: React.FC<{
     if (isOpen && lote) {
       fetchClienteInfo();
     } else {
-      // Resetear cuando se cierra el modal
       setClienteInfo(null);
       setErrorCliente(null);
     }
@@ -136,7 +124,6 @@ const ModalDetalleLote: React.FC<{
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
       <div className="bg-white rounded-2xl shadow-2xl max-w-4xl w-full max-h-[90vh] overflow-hidden animate-scale-in">
-        {/* Header del Modal */}
         <div className="bg-gradient-to-r from-indigo-600 to-purple-600 p-6 text-white">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-4">
@@ -151,7 +138,6 @@ const ModalDetalleLote: React.FC<{
           </div>
         </div>
 
-        {/* Contenido del Modal */}
         <div className="p-6 overflow-y-auto max-h-[calc(90vh-200px)]">
           {/* Información General */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
@@ -190,8 +176,6 @@ const ModalDetalleLote: React.FC<{
                   <span className="text-gray-700 font-bold">Cliente:</span>
                   {cargandoCliente ? (
                     <div className="animate-pulse bg-gray-200 h-4 w-24 rounded"></div>
-                  ) : errorCliente ? (
-                    <span className="text-red-500 text-sm">{errorCliente}</span>
                   ) : (
                     <span className="font-bold text-gray-900">
                       {clienteInfo?.nombre_usuario || lote.cliente?.nombre_usuario || "No disponible"}
@@ -202,8 +186,6 @@ const ModalDetalleLote: React.FC<{
                   <span className="text-gray-700 font-bold">Correo:</span>
                   {cargandoCliente ? (
                     <div className="animate-pulse bg-gray-200 h-4 w-32 rounded"></div>
-                  ) : errorCliente ? (
-                    <span className="text-red-500 text-sm">{errorCliente}</span>
                   ) : (
                     <span className="font-bold text-gray-900 flex items-center gap-1">
                       <Mail className="w-4 h-4" />
@@ -243,51 +225,6 @@ const ModalDetalleLote: React.FC<{
             </div>
           </div>
 
-          {/* Distribución */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
-            <div className="bg-gradient-to-br from-orange-50 to-amber-50 rounded-xl p-6 border border-orange-200 shadow-sm">
-              <div className="flex items-center gap-3 mb-4">
-                <div className="w-12 h-12 bg-gradient-to-r from-orange-500 to-amber-500 rounded-lg flex items-center justify-center">
-                  <Building className="w-6 h-6 text-white" />
-                </div>
-                <div>
-                  <h3 className="font-bold text-gray-900 text-lg">Parte de la Empresa</h3>
-                  <p className="text-sm text-gray-600 font-bold">60% del Total Neto</p>
-                </div>
-              </div>
-              <div className="text-center">
-                <div className="text-3xl font-bold text-orange-600 mb-2">{formatMoneda(lote.parte_empresa)}</div>
-                <div className="w-full bg-gray-200 rounded-full h-3">
-                  <div 
-                    className="bg-gradient-to-r from-orange-500 to-amber-500 h-3 rounded-full" 
-                    style={{ width: '60%' }}
-                  ></div>
-                </div>
-              </div>
-            </div>
-
-            <div className="bg-gradient-to-br from-cyan-50 to-blue-50 rounded-xl p-6 border border-cyan-200 shadow-sm">
-              <div className="flex items-center gap-3 mb-4">
-                <div className="w-12 h-12 bg-gradient-to-r from-cyan-500 to-blue-500 rounded-lg flex items-center justify-center">
-                  <Users className="w-6 h-6 text-white" />
-                </div>
-                <div>
-                  <h3 className="font-bold text-gray-900 text-lg">Parte del Cliente</h3>
-                  <p className="text-sm text-gray-600 font-bold">40% del Total Neto</p>
-                </div>
-              </div>
-              <div className="text-center">
-                <div className="text-3xl font-bold text-cyan-600 mb-2">{formatMoneda(lote.parte_cliente)}</div>
-                <div className="w-full bg-gray-200 rounded-full h-3">
-                  <div 
-                    className="bg-gradient-to-r from-cyan-500 to-blue-500 h-3 rounded-full" 
-                    style={{ width: '40%' }}
-                  ></div>
-                </div>
-              </div>
-            </div>
-          </div>
-
           {/* Recibos Individuales */}
           {lote.recibos && lote.recibos.length > 0 && (
             <div className="bg-white rounded-xl border border-gray-200 overflow-hidden shadow-sm">
@@ -300,7 +237,7 @@ const ModalDetalleLote: React.FC<{
                 </h3>
               </div>
               <div className="divide-y divide-gray-200">
-                {lote.recibos.map((recibo, index) => (
+                {lote.recibos.map((recibo) => (
                   <div key={recibo.id} className="p-6 hover:bg-gray-50 transition-colors group">
                     <div className="flex items-center justify-between mb-4">
                       <div className="flex items-center gap-4">
@@ -335,21 +272,8 @@ const ModalDetalleLote: React.FC<{
               </div>
             </div>
           )}
-
-          {(!lote.recibos || lote.recibos.length === 0) && (
-            <div className="bg-gradient-to-r from-yellow-50 to-amber-50 border border-yellow-200 rounded-xl p-8 text-center shadow-sm">
-              <div className="w-16 h-16 bg-gradient-to-r from-yellow-400 to-amber-500 rounded-full flex items-center justify-center mx-auto mb-4">
-                <Package className="w-8 h-8 text-white" />
-              </div>
-              <h4 className="font-bold text-yellow-800 text-lg mb-2">Detalle de Recibos No Disponible</h4>
-              <p className="text-yellow-700 font-bold">
-                Este lote contiene {lote.cantidad_recibos} recibo(s) individual(es)
-              </p>
-            </div>
-          )}
         </div>
 
-        {/* Footer del Modal */}
         <div className="bg-gradient-to-r from-gray-50 to-gray-100 px-6 py-4 border-t border-gray-200 flex justify-end">
           <button
             onClick={onClose}
@@ -364,6 +288,7 @@ const ModalDetalleLote: React.FC<{
 };
 
 export default function ClienteDashboardPage() {
+  // ... (mantener todos los estados originales)
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [activeSection, setActiveSection] = useState("dashboard");
   const [stats, setStats] = useState<Stats>({
@@ -379,32 +304,18 @@ export default function ClienteDashboardPage() {
   const [loadingLotesRecibos, setLoadingLotesRecibos] = useState(false);
   const [solicitudes, setSolicitudes] = useState<Solicitud[]>([]);
   const [loadingSolicitudes, setLoadingSolicitudes] = useState(false);
-
-  // Estado para el modal
   const [modalAbierto, setModalAbierto] = useState(false);
   const [loteSeleccionado, setLoteSeleccionado] = useState<LoteRecibo | null>(null);
   const [cargandoDetalle, setCargandoDetalle] = useState(false);
-
-  // Estado para el filtro
   const [filtroBusqueda, setFiltroBusqueda] = useState("");
   
-  // Estados para descarga de PDF
-  const [showPDFPreview, setShowPDFPreview] = useState(false);
-  const [reciboParaDescargar, setReciboParaDescargar] = useState<LoteRecibo | null>(null);
-  const [descargandoPDF, setDescargandoPDF] = useState(false);
+  // Estados para PDF/Descarga eliminados, ahora usamos para imprimir
+  const [showPrintModal, setShowPrintModal] = useState(false);
+  const [reciboParaImprimir, setReciboParaImprimir] = useState<LoteRecibo | null>(null);
 
   const { usuario, logout } = useAuth();
   const router = useRouter();
   const backendUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3000";
-
-  // Redirección por seguridad
-  useEffect(() => {
-    if (!usuario) {
-      router.push("/login");
-    } else if (usuario.rol !== "Cliente") {
-      router.push("/login");
-    }
-  }, [usuario, router]);
 
   const menuItems: MenuItem[] = [
     { id: "dashboard", label: "Dashboard", icon: Home },
@@ -412,6 +323,15 @@ export default function ClienteDashboardPage() {
     { id: "solicitudes", label: "Solicitudes", icon: Wrench },
     { id: "recibos", label: "Recibos", icon: FileText },
   ];
+
+  // ... (mantener todos los useEffect y funciones fetch originales)
+  useEffect(() => {
+    if (!usuario) {
+      router.push("/login");
+    } else if (usuario.rol !== "Cliente") {
+      router.push("/login");
+    }
+  }, [usuario, router]);
 
   useEffect(() => {
     if (usuario?.id) {
@@ -421,7 +341,6 @@ export default function ClienteDashboardPage() {
     }
   }, [usuario]);
 
-  // Aplicar filtro cuando cambie el texto o los lotes
   useEffect(() => {
     if (filtroBusqueda.trim() === "") {
       setLotesRecibosFiltrados(lotesRecibos);
@@ -441,7 +360,6 @@ export default function ClienteDashboardPage() {
       const res = await fetch(`${backendUrl}/api/Maquina-Cliente/listar?cliente_id=${usuario?.id}`);
       if (res.ok) {
         const data = await res.json();
-        
         const misMaquinas: Maquina[] = Array.isArray(data) 
           ? data.map((asignacion: any) => ({
               ...asignacion.maquina,
@@ -449,16 +367,12 @@ export default function ClienteDashboardPage() {
               estado_asignacion: asignacion.estado
             }))
           : [];
-        
         setMaquinas(misMaquinas);
         setStats(prev => ({ ...prev, totalMaquinas: misMaquinas.length }));
-      } else {
-        throw new Error("Error al cargar máquinas");
       }
     } catch (error) {
       console.error("Error:", error);
       setMaquinas([]);
-      setStats(prev => ({ ...prev, totalMaquinas: 0 }));
     } finally {
       setLoadingMaquinas(false);
     }
@@ -471,7 +385,6 @@ export default function ClienteDashboardPage() {
       
       if (res.ok) {
         const data = await res.json();
-        
         let lotesData: LoteRecibo[] = [];
         
         if (data.success && Array.isArray(data.data)) {
@@ -480,63 +393,14 @@ export default function ClienteDashboardPage() {
           lotesData = data;
         }
         
-        // ✅ ORDENAR por ID DESCENDENTE (lote más reciente primero)
         lotesData.sort((a, b) => b.id - a.id);
-        
-        console.log('Lotes de recibos cargados:', lotesData);
-        
         setLotesRecibos(lotesData);
         setLotesRecibosFiltrados(lotesData);
         setStats(prev => ({ ...prev, recibosTotal: lotesData.length }));
-      } else {
-        console.warn('API de lotes-recibos no disponible, usando datos de prueba');
-        // Datos de prueba desde la tabla LoteRecibo
-        const lotesSimulados: LoteRecibo[] = [
-          { 
-            id: 1008,
-            cliente_id: usuario?.id || 1,
-            fecha_recibo: "2025-03-10T00:00:00.000Z", 
-            ingreso: 1420.00,
-            egreso: 120.00,
-            total: 1300.00,
-            parte_empresa: 780.00,
-            parte_cliente: 520.00,
-            fecha_creacion: "2025-03-10T14:20:00.000Z",
-            cantidad_recibos: 2,
-            cliente: {
-              id: usuario?.id || 1,
-              nombre_usuario: usuario?.nombre_usuario || "cliente1",
-              correo: usuario?.correo || "cliente1@example.com"
-            }
-          },
-          { 
-            id: 1005,
-            cliente_id: usuario?.id || 1,
-            fecha_recibo: "2025-02-05T00:00:00.000Z", 
-            ingreso: 980.50,
-            egreso: 75.25,
-            total: 905.25,
-            parte_empresa: 543.15,
-            parte_cliente: 362.10,
-            fecha_creacion: "2025-02-05T09:15:00.000Z",
-            cantidad_recibos: 1,
-            cliente: {
-              id: usuario?.id || 1,
-              nombre_usuario: usuario?.nombre_usuario || "cliente1",
-              correo: usuario?.correo || "cliente1@example.com"
-            }
-          },
-        ];
-        
-        setLotesRecibos(lotesSimulados);
-        setLotesRecibosFiltrados(lotesSimulados);
-        setStats(prev => ({ ...prev, recibosTotal: lotesSimulados.length }));
       }
     } catch (error) {
-      console.error("Error fetching lotes de recibos:", error);
+      console.error("Error:", error);
       setLotesRecibos([]);
-      setLotesRecibosFiltrados([]);
-      setStats(prev => ({ ...prev, recibosTotal: 0 }));
     } finally {
       setLoadingLotesRecibos(false);
     }
@@ -567,7 +431,6 @@ export default function ClienteDashboardPage() {
     router.push("/login");
   };
 
-  // Función para formatear fecha
   const formatFecha = (fechaString: string): string => {
     if (!fechaString) return "N/A";
     try {
@@ -581,7 +444,6 @@ export default function ClienteDashboardPage() {
     }
   };
 
-  // Función para formatear moneda
   const formatMoneda = (monto: number): string => {
     return new Intl.NumberFormat('es-HN', {
       style: 'currency',
@@ -589,10 +451,9 @@ export default function ClienteDashboardPage() {
     }).format(monto);
   };
 
-  // Función para abrir vista previa de descarga
-  const handleDescargarRecibo = async (lote: LoteRecibo): Promise<void> => {
-    setReciboParaDescargar(lote);
-    setShowPDFPreview(true);
+  // ✅ NUEVA FUNCIÓN: Abrir modal de impresión
+  const handleImprimirRecibo = async (lote: LoteRecibo): Promise<void> => {
+    setReciboParaImprimir(lote);
     
     if (!lote.recibos) {
       try {
@@ -600,86 +461,27 @@ export default function ClienteDashboardPage() {
         if (res.ok) {
           const data = await res.json();
           if (data.success && data.data) {
-            setReciboParaDescargar(data.data);
+            setReciboParaImprimir(data.data);
           }
         }
       } catch (error) {
         console.error('Error al cargar detalle del lote:', error);
       }
     }
-  };
-
-  // Función para cargar scripts de CDN
-  const loadScript = (src: string): Promise<void> => {
-    return new Promise((resolve, reject) => {
-      const script = document.createElement('script');
-      script.src = src;
-      script.onload = () => resolve();
-      script.onerror = () => reject(new Error(`Failed to load script: ${src}`));
-      document.head.appendChild(script);
-    });
-  };
-
-  // Función para descargar PDF
-  const descargarPDF = async (): Promise<void> => {
-    if (!reciboParaDescargar) return;
     
-    setDescargandoPDF(true);
-    try {
-      await loadScript('https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js');
-      await loadScript('https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js');
-      
-      const element = document.getElementById('pdf-content');
-      if (!element) {
-        throw new Error('Elemento de contenido no encontrado');
-      }
-      
-      const canvas = await (window as any).html2canvas(element, {
-        scale: 2,
-        useCORS: true,
-        backgroundColor: '#ffffff',
-        allowTaint: true,
-        logging: false,
-        imageTimeout: 0
-      });
-      
-      const imgData = canvas.toDataURL('image/png');
-      const jsPDFModule = (window as any).jspdf;
-      const pdf = new jsPDFModule.jsPDF('p', 'mm', 'a4');
-      
-      const imgWidth = 210;
-      const pageHeight = 297;
-      const imgHeight = (canvas.height * imgWidth) / canvas.width;
-      let heightLeft = imgHeight;
-      let position = 0;
-      
-      pdf.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeight);
-      heightLeft -= pageHeight;
-      
-      while (heightLeft >= 0) {
-        position = heightLeft - imgHeight;
-        pdf.addPage();
-        pdf.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeight);
-        heightLeft -= pageHeight;
-      }
-      
-      pdf.save(`recibo-${reciboParaDescargar.id}.pdf`);
-      setShowPDFPreview(false);
-    } catch (error) {
-      console.error('Error al generar PDF:', error);
-      alert('Error al generar el PDF. Por favor intenta nuevamente.');
-    } finally {
-      setDescargandoPDF(false);
-    }
+    setShowPrintModal(true);
   };
 
-  // ✅ FUNCIÓN MEJORADA: Abrir modal con detalle del lote
+  // ✅ NUEVA FUNCIÓN: Imprimir recibo
+  const imprimirRecibo = (): void => {
+    window.print();
+  };
+
   const handleVerDetalle = async (lote: LoteRecibo): Promise<void> => {
     setCargandoDetalle(true);
     setLoteSeleccionado(lote);
     
     try {
-      // Obtener el detalle completo del lote con sus recibos
       const res = await fetch(`${backendUrl}/api/Lote-Recibo/${lote.id}`);
       
       if (res.ok) {
@@ -697,13 +499,11 @@ export default function ClienteDashboardPage() {
     }
   };
 
-  // Función para cerrar el modal
   const cerrarModal = (): void => {
     setModalAbierto(false);
     setLoteSeleccionado(null);
   };
 
-  // Función para limpiar filtro
   const limpiarFiltro = (): void => {
     setFiltroBusqueda("");
   };
@@ -711,6 +511,7 @@ export default function ClienteDashboardPage() {
   const renderContent = (): React.ReactNode => {
     switch (activeSection) {
       case "maquinas":
+        // ... (mantener el código de máquinas original)
         return (
           <div>
             <div className="flex items-center justify-between mb-6">
@@ -766,6 +567,7 @@ export default function ClienteDashboardPage() {
         );
 
       case "solicitudes":
+        // ... (mantener el código de solicitudes original igual)
         return (
           <div>
             <div className="flex items-center justify-between mb-6">
@@ -827,9 +629,8 @@ export default function ClienteDashboardPage() {
             <div className="flex items-center justify-between mb-6">
               <h2 className="text-3xl font-bold text-gray-900">Mis Recibos</h2>
               <div className="flex items-center gap-4">
-                {/* Buscador unificado por ID y fecha */}
                 <div className="relative">
-                 <Search className="w-5 h-5 text-gray-400 absolute left-3 top-2.5" />
+                  <Search className="w-5 h-5 text-gray-400 absolute left-3 top-2.5" />
                   <input
                     type="text"
                     placeholder="Buscar por ID o fecha..."
@@ -837,19 +638,18 @@ export default function ClienteDashboardPage() {
                     onChange={(e) => setFiltroBusqueda(e.target.value)}
                     className="pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent w-64 font-bold text-gray-900"
                   />
-                {filtroBusqueda && (
-                  <button
-                    onClick={limpiarFiltro}
-                    className="absolute right-3 top-2.5 text-gray-400 hover:text-gray-600"
-                  >
-                    <X className="w-4 h-4" />
-                  </button>
-                )}
-              </div>
+                  {filtroBusqueda && (
+                    <button
+                      onClick={limpiarFiltro}
+                      className="absolute right-3 top-2.5 text-gray-400 hover:text-gray-600"
+                    >
+                      <X className="w-4 h-4" />
+                    </button>
+                  )}
+                </div>
               </div>
             </div>
 
-            {/* Información del filtro */}
             {filtroBusqueda && (
               <div className="mb-4 p-4 bg-blue-50 border border-blue-200 rounded-lg">
                 <div className="flex items-center justify-between">
@@ -867,11 +667,6 @@ export default function ClienteDashboardPage() {
                     Limpiar filtro
                   </button>
                 </div>
-                {lotesRecibosFiltrados.length === 0 && (
-                  <p className="text-blue-700 text-sm mt-2">
-                    No se encontraron Recibos con: {filtroBusqueda}
-                  </p>
-                )}
               </div>
             )}
 
@@ -890,17 +685,9 @@ export default function ClienteDashboardPage() {
                 <p className="text-gray-600">
                   {filtroBusqueda 
                     ? `No hay Recibos que coincidan con: ${filtroBusqueda}`
-                    : 'Los recibos aparecerán aquí cuando se haga el recibo'
+                    : 'Los recibos aparecerán aquí cuando se generen'
                   }
                 </p>
-                {filtroBusqueda && (
-                  <button
-                    onClick={limpiarFiltro}
-                    className="mt-4 px-6 py-2 bg-blue-500 text white rounded-lg hover:bg-blue-600 transition-colors font-bold"
-                  >
-                    Ver todos los Recibos
-                  </button>
-                )}
               </div>
             ) : (
               <div className="bg-white rounded-xl shadow-sm overflow-hidden">
@@ -910,7 +697,7 @@ export default function ClienteDashboardPage() {
                       <th className="px-6 py-4 text-left text-sm font-bold text-gray-700">Recibos</th>
                       <th className="px-6 py-4 text-left text-sm font-bold text-gray-700">Fecha</th>
                       <th className="px-6 py-4 text-left text-sm font-bold text-gray-700">Total Neto</th>
-                      <th className="px-6 py-4 text-left text-sm font-bold text-gray-700">Maquinas</th>
+                      <th className="px-6 py-4 text-left text-sm font-bold text-gray-700">Máquinas</th>
                       <th className="px-6 py-4 text-left text-sm font-bold text-gray-700">Acciones</th>
                     </tr>
                   </thead>
@@ -922,11 +709,7 @@ export default function ClienteDashboardPage() {
                             <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-red-500 rounded-lg flex items-center justify-center">
                               <FileText className="w-5 h-5 text-white" />
                             </div>
-                            <div>
-                              <span className="font-bold text-gray-900 block">{lote.id}</span>
-                              <span className="text-xs text-gray-400 block mt-1">
-                              </span>
-                            </div>
+                            <span className="font-bold text-gray-900">#{lote.id}</span>
                           </div>
                         </td>
                         <td className="px-6 py-4">
@@ -937,33 +720,30 @@ export default function ClienteDashboardPage() {
                             {formatMoneda(lote.total)}
                           </div>
                           <div className="text-xs text-gray-500 mt-1 font-bold">
-                            Empresa: {formatMoneda(lote.parte_empresa)}
-                          </div>
-                          <div className="text-xs text-gray-500 font-bold">
-                            Cliente: {formatMoneda(lote.parte_cliente)}
+                            Tu parte: {formatMoneda(lote.parte_cliente)}
                           </div>
                         </td>
                         <td className="px-6 py-4">
                           <div className="text-sm text-gray-600 font-bold">
-                            {lote.cantidad_recibos} Maquina(s)
+                            {lote.cantidad_recibos} Máquina(s)
                           </div>
                         </td>
                         <td className="px-6 py-4">
-                          <div className="flex items-center gap-6">
+                          <div className="flex items-center gap-3">
                             <button 
                               onClick={() => handleVerDetalle(lote)}
                               disabled={cargandoDetalle}
-                              className="text-blue-600 hover:text-blue-800 text-sm font-bold flex items-center gap-1 px-4 py-2 rounded-lg hover:bg-blue-50 transition-colors border border-blue-200 disabled:opacity-50 disabled:cursor-not-allowed"
+                              className="text-blue-600 hover:text-blue-800 text-sm font-bold flex items-center gap-1 px-3 py-2 rounded-lg hover:bg-blue-50 transition-colors disabled:opacity-50"
                             >
                               <Eye className="w-4 h-4" />
-                              {cargandoDetalle ? "Cargando..." : "Ver Detalle"}
+                              Ver
                             </button>
                             <button 
-                              onClick={() => handleDescargarRecibo(lote)}
-                              className="bg-green-500 hover:bg-green-600 text-white text-sm font-bold flex items-center gap-1 px-4 py-2 rounded-lg transition-colors shadow-sm hover:shadow-md border border-green-600"
+                              onClick={() => handleImprimirRecibo(lote)}
+                              className="px-3 py-2 bg-gradient-to-r from-green-500 to-emerald-600 text-white rounded-lg hover:shadow-lg transition-all font-bold flex items-center gap-1"
                             >
-                              <Download className="w-4 h-4" />
-                              Descargar PDF
+                              <Printer className="w-4 h-4" />
+                              Imprimir
                             </button>
                           </div>
                         </td>
@@ -990,9 +770,9 @@ export default function ClienteDashboardPage() {
 
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
               {[
-                { title: "Mis Máquinas", value: stats.totalMaquinas, bgColor: "bg-blue-100", textColor: "text-blue-600", icon: Wrench, gradient: "from-blue-500 to-blue-600" },
-                { title: "Solicitudes Pendientes", value: stats.solicitudesPendientes, bgColor: "bg-red-100", textColor: "text-red-600", icon: Wrench, gradient: "from-red-500 to-red-600" },
-                { title: "Total Lotes", value: stats.recibosTotal, bgColor: "bg-purple-100", textColor: "text-purple-600", icon: FileText, gradient: "from-purple-500 to-purple-600" },
+                { title: "Mis Máquinas", value: stats.totalMaquinas, bgColor: "bg-blue-100", textColor: "text-blue-600", icon: Wrench },
+                { title: "Solicitudes Pendientes", value: stats.solicitudesPendientes, bgColor: "bg-red-100", textColor: "text-red-600", icon: Wrench },
+                { title: "Total Lotes", value: stats.recibosTotal, bgColor: "bg-purple-100", textColor: "text-purple-600", icon: FileText },
               ].map((card, index) => {
                 const IconComponent = card.icon;
                 return (
@@ -1038,26 +818,6 @@ export default function ClienteDashboardPage() {
                 })}
               </div>
             </div>
-
-            <div className="bg-white rounded-xl shadow-sm p-6">
-              <h3 className="text-xl font-bold text-gray-900 mb-4">Actividad Reciente</h3>
-              <div className="space-y-4">
-                {[
-                  { action: "Solicitud de reparación creada", item: "Compresor Industrial", time: "Hace 2 días", icon: "🔧" },
-                  { action: "Lote de recibos generado", item: "LOTE-1008", time: "Hace 5 días", icon: "🧾" },
-                  { action: "Máquina actualizada", item: "Generador 500W", time: "Hace 1 semana", icon: "⚙️" },
-                ].map((activity, index) => (
-                  <div key={index} className="flex items-center gap-4 p-4 rounded-lg hover:bg-gray-50 transition-colors border-l-4 border-blue-500">
-                    <div className="text-2xl">{activity.icon}</div>
-                    <div className="flex-1">
-                      <p className="font-bold text-gray-900">{activity.action}</p>
-                      <p className="text-sm text-gray-600 font-bold">{activity.item}</p>
-                    </div>
-                    <span className="text-xs text-gray-500 font-bold">{activity.time}</span>
-                  </div>
-                ))}
-              </div>
-            </div>
           </div>
         );
     }
@@ -1067,7 +827,7 @@ export default function ClienteDashboardPage() {
 
   return (
     <>
-      <div className="flex h-screen bg-gradient-to-br from-blue-50 to-red-50 overflow-hidden">
+      <div className="flex h-screen bg-gradient-to-br from-blue-50 to-red-50 overflow-hidden print:hidden">
         <aside className={`${sidebarOpen ? "w-64" : "w-20"} bg-white border-r border-gray-200 transition-all duration-300 flex flex-col shadow-lg`}>
           <div className="p-6 border-b border-gray-200">
             <div className="flex items-center gap-3">
@@ -1140,7 +900,6 @@ export default function ClienteDashboardPage() {
         </main>
       </div>
 
-      {/* Modal de Detalle */}
       <ModalDetalleLote
         lote={loteSeleccionado}
         isOpen={modalAbierto}
@@ -1149,24 +908,23 @@ export default function ClienteDashboardPage() {
         formatMoneda={formatMoneda}
       />
 
-      {/* MODAL DE VISTA PREVIA PARA DESCARGAR PDF */}
-      {showPDFPreview && reciboParaDescargar && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-4xl max-h-[90vh] overflow-y-auto">
-            {/* Botones de acción */}
-            <div className="flex justify-between items-center p-6 border-b border-gray-200 sticky top-0 bg-white">
+      {/* MODAL DE VISTA PREVIA PARA IMPRIMIR */}
+      {showPrintModal && reciboParaImprimir && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4 print:bg-white">
+          <div className="bg-white rounded-xl shadow-2xl w-full max-w-4xl max-h-[90vh] overflow-y-auto print:shadow-none print:max-w-full print:max-h-full">
+            {/* Botones de acción - Solo visible en pantalla */}
+            <div className="flex justify-between items-center p-6 border-b border-gray-200 print:hidden">
               <h3 className="text-xl font-bold text-gray-900">Vista Previa del Recibo</h3>
               <div className="flex gap-3">
                 <button
-                  onClick={descargarPDF}
-                  disabled={descargandoPDF}
-                  className="px-4 py-2 bg-gradient-to-r from-green-500 to-emerald-600 text-white rounded-lg hover:shadow-lg transition-all font-bold flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                  onClick={imprimirRecibo}
+                  className="px-4 py-2 bg-gradient-to-r from-green-500 to-emerald-600 text-white rounded-lg hover:shadow-lg transition-all font-medium flex items-center gap-2"
                 >
-                  <Download className="w-4 h-4" />
-                  {descargandoPDF ? "Descargando..." : "Descargar PDF"}
+                  <Printer className="w-4 h-4" />
+                  Imprimir
                 </button>
                 <button
-                  onClick={() => setShowPDFPreview(false)}
+                  onClick={() => setShowPrintModal(false)}
                   className="px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50"
                 >
                   <X className="w-5 h-5" />
@@ -1174,45 +932,45 @@ export default function ClienteDashboardPage() {
               </div>
             </div>
 
-            {/* Contenido del Recibo */}
-            <div id="pdf-content" className="p-8">
+            {/* Contenido del Recibo para Imprimir */}
+            <div className="p-8 print:p-12">
               {/* Encabezado */}
               <div className="text-center mb-8 border-b-2 border-gray-300 pb-6">
                 <h1 className="text-3xl font-bold text-gray-900 mb-2">RECIBO DE MÁQUINAS</h1>
                 <p className="text-lg text-gray-600">Sistema de Gestión PokerMGMT</p>
-                <p className="text-sm text-gray-500 mt-2">Recibo #{reciboParaDescargar.id}</p>
+                <p className="text-sm text-gray-500 mt-2">Recibo #{reciboParaImprimir.id}</p>
               </div>
 
               {/* Información del Cliente y Fecha */}
               <div className="grid grid-cols-2 gap-6 mb-8">
                 <div>
                   <h3 className="text-sm font-semibold text-gray-600 mb-2">CLIENTE:</h3>
-                  <p className="text-xl font-bold text-gray-900">{reciboParaDescargar.cliente?.nombre_usuario || "N/A"}</p>
-                  <p className="text-sm text-gray-600">ID Cliente: {reciboParaDescargar.cliente_id}</p>
+                  <p className="text-xl font-bold text-gray-900">{reciboParaImprimir.cliente?.nombre_usuario || usuario?.nombre_usuario}</p>
+                  <p className="text-sm text-gray-600">ID Cliente: {reciboParaImprimir.cliente_id}</p>
                 </div>
                 <div className="text-right">
                   <h3 className="text-sm font-semibold text-gray-600 mb-2">FECHA:</h3>
                   <p className="text-xl font-bold text-gray-900">
-                    {formatFecha(reciboParaDescargar.fecha_recibo)}
+                    {formatFecha(reciboParaImprimir.fecha_recibo)}
                   </p>
                 </div>
               </div>
 
               {/* Tabla de Máquinas */}
-              {reciboParaDescargar.recibos && reciboParaDescargar.recibos.length > 0 && (
+              {reciboParaImprimir.recibos && reciboParaImprimir.recibos.length > 0 && (
                 <div className="mb-8">
                   <h3 className="text-lg font-bold text-gray-900 mb-4">DETALLE DE MÁQUINAS</h3>
                   <table className="w-full border-collapse border border-gray-300">
                     <thead className="bg-gray-100">
                       <tr>
                         <th className="border border-gray-300 px-4 py-3 text-left text-sm font-semibold">Máquina</th>
-                        <th className="border border-gray-300 px-4 py-3 text-right text-sm font-semibold">Ingresos (HNL)</th>
-                        <th className="border border-gray-300 px-4 py-3 text-right text-sm font-semibold">Gastos (HNL)</th>
-                        <th className="border border-gray-300 px-4 py-3 text-right text-sm font-semibold">Total (HNL)</th>
+                        <th className="border border-gray-300 px-4 py-3 text-right text-sm font-semibold">Ingresos (LPS)</th>
+                        <th className="border border-gray-300 px-4 py-3 text-right text-sm font-semibold">Gastos (LPS)</th>
+                        <th className="border border-gray-300 px-4 py-3 text-right text-sm font-semibold">Total (LPS)</th>
                       </tr>
                     </thead>
                     <tbody>
-                      {reciboParaDescargar.recibos.map((recibo, index) => (
+                      {reciboParaImprimir.recibos.map((recibo, index) => (
                         <tr key={recibo.id} className={index % 2 === 0 ? 'bg-white' : 'bg-gray-50'}>
                           <td className="border border-gray-300 px-4 py-3 font-medium">{recibo.maquina.nombre}</td>
                           <td className="border border-gray-300 px-4 py-3 text-right">{recibo.ingreso.toFixed(2)}</td>
@@ -1231,33 +989,45 @@ export default function ClienteDashboardPage() {
                   <h3 className="text-lg font-bold text-gray-900 mb-4">RESUMEN TOTAL</h3>
                   <div className="flex justify-between border-b border-gray-300 pb-2">
                     <span className="text-gray-700">Total Ingresos:</span>
-                    <span className="font-bold">{formatMoneda(reciboParaDescargar.ingreso)}</span>
+                    <span className="font-bold">{formatMoneda(reciboParaImprimir.ingreso)}</span>
                   </div>
                   <div className="flex justify-between border-b border-gray-300 pb-2">
                     <span className="text-gray-700">Total Gastos:</span>
-                    <span className="font-bold">{formatMoneda(reciboParaDescargar.egreso)}</span>
+                    <span className="font-bold">{formatMoneda(reciboParaImprimir.egreso)}</span>
                   </div>
                   <div className="flex justify-between pt-2">
                     <span className="text-lg font-bold">Total Neto:</span>
-                    <span className="text-lg font-bold text-green-600">{formatMoneda(reciboParaDescargar.total)}</span>
+                    <span className="text-lg font-bold text-green-600">{formatMoneda(reciboParaImprimir.total)}</span>
                   </div>
                 </div>
 
                 <div className="space-y-3">
                   <h3 className="text-lg font-bold text-gray-900 mb-4">DISTRIBUCIÓN</h3>
                   <div className="flex justify-between border-b border-gray-300 pb-2">
-                    <span className="text-gray-700">Parte Empresa (60%):</span>
-                    <span className="font-bold">{formatMoneda(reciboParaDescargar.parte_empresa)}</span>
+                    <span className="text-gray-700">Parte Propietario (60%):</span>
+                    <span className="font-bold">{formatMoneda(reciboParaImprimir.parte_empresa)}</span>
                   </div>
                   <div className="flex justify-between pt-2">
                     <span className="text-lg font-bold">Parte Cliente (40%):</span>
-                    <span className="text-lg font-bold text-blue-600">{formatMoneda(reciboParaDescargar.parte_cliente)}</span>
+                    <span className="text-lg font-bold text-blue-600">{formatMoneda(reciboParaImprimir.parte_cliente)}</span>
                   </div>
                 </div>
               </div>
 
               {/* Pie del Recibo */}
               <div className="border-t-2 border-gray-300 pt-6 mt-8">
+                <div className="grid grid-cols-2 gap-8 mb-6">
+                  <div>
+                    <p className="text-sm text-gray-600 mb-4">Firma del Cliente:</p>
+                    <div className="border-b-2 border-gray-300 w-full h-16"></div>
+                    <p className="text-xs text-gray-500 mt-2">{reciboParaImprimir.cliente?.nombre_usuario || usuario?.nombre_usuario}</p>
+                  </div>
+                  <div>
+                    <p className="text-sm text-gray-600 mb-4">Firma del Propietario:</p>
+                    <div className="border-b-2 border-gray-300 w-full h-16"></div>
+                    <p className="text-xs text-gray-500 mt-2">PokerMGMT</p>
+                  </div>
+                </div>
                 <p className="text-xs text-center text-gray-500 mt-6">
                   Este documento es un recibo oficial generado por el Sistema de Gestión PokerMGMT
                 </p>
@@ -1269,6 +1039,45 @@ export default function ClienteDashboardPage() {
           </div>
         </div>
       )}
+
+      {/* Estilos para impresión */}
+      <style jsx global>{`
+        @media print {
+          @page {
+            size: A4;
+            margin: 1cm;
+          }
+          
+          body {
+            print-color-adjust: exact;
+            -webkit-print-color-adjust: exact;
+          }
+          
+          .print\\:hidden {
+            display: none !important;
+          }
+          
+          .print\\:bg-white {
+            background-color: white !important;
+          }
+          
+          .print\\:shadow-none {
+            box-shadow: none !important;
+          }
+          
+          .print\\:max-w-full {
+            max-width: 100% !important;
+          }
+          
+          .print\\:max-h-full {
+            max-height: 100% !important;
+          }
+          
+          .print\\:p-12 {
+            padding: 3rem !important;
+          }
+        }
+      `}</style>
     </>
   );
 }
