@@ -1,0 +1,22 @@
+-- Agregar constraints CHECK para evitar valores negativos
+ALTER TABLE public.recibos 
+ADD CONSTRAINT chk_ingreso_no_negativo 
+CHECK (ingreso >= 0);
+
+ALTER TABLE public.recibos 
+ADD CONSTRAINT chk_egreso_no_negativo 
+CHECK (egreso >= 0);
+
+
+-- Agregar constraints CHECK para evitar valores negativos en lotes_recibos
+ALTER TABLE public.lotes_recibos 
+ADD CONSTRAINT chk_lotes_ingreso_no_negativo 
+CHECK (ingreso >= 0);
+
+ALTER TABLE public.lotes_recibos 
+ADD CONSTRAINT chk_lotes_egreso_no_negativo 
+CHECK (egreso >= 0);
+
+ ALTER TABLE public.lotes_recibos 
+ADD CONSTRAINT chk_lotes_cantidad_recibos_no_negativo 
+CHECK (cantidad_recibos >= 0);

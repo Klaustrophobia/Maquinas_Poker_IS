@@ -2,9 +2,9 @@ name: Verify Dependencies and Build
 
 on:
   push:
-    branches: [usuariosComplete, main, mm-backend-recibos]
+    branches: [usuariosComplete, main, mm-backend-recibos, FRONTEND-RECIBOS-ADMIN]
   pull_request:
-    branches: [usuariosComplete, main, mm-backend-recibos]
+    branches: [usuariosComplete, main, mm-backend-recibos, FRONTEND-RECIBOS-ADMIN]
 
 jobs:
   verify-backend:
