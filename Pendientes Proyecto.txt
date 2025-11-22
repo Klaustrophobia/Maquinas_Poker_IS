@@ -1,0 +1,14 @@
+Desabilitar al proveedor al proveedor y no eliminarlo
+Notificacion de error controlado
+
+Eliminar en cascada proveedor -> todos los repuestos
+Actualizar estado del proveedor (activado, desactivado)
+Agregar identificador de una maquina y provedor
+Asignar maquinas desde administrador, y luego de crear la maquina se asigne el cliente
+
+
+
+Seccion de Contabilidad/Recibos vista completamente independiente
+Seccion de Ordenes de Trabajo vista completamente independiente
+Revisar logica a nivel de base de datos para crear recibos a clientes
+

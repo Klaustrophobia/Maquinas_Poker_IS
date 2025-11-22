@@ -1,7 +1,8 @@
 "use client";
-import { useEffect, useState } from "react";
+import { useState, useEffect } from "react";
+import { Menu, X, Home, Users, Package, Wrench, Truck, LogOut, FileText, Clipboard, Trash2, Plus, Calendar, DollarSign, User, Filter, History, Printer, ArrowLeft } from "lucide-react";
+import { useAuth } from "@/app/context/AuthContext";
 import { useRouter } from "next/navigation";
-import { ArrowLeft, Wrench, RefreshCw, Trash2, History, Search, Calendar, DollarSign, User, Filter } from "lucide-react";
 
 // Interfaces
 interface Cliente {
@@ -49,8 +50,13 @@ interface ReciboExistente {
   fecha_creacion?: string;
 }
 
-export default function GenerarRecibo() {
+export default function ContabilidadPage() {
+  const [sidebarOpen, setSidebarOpen] = useState(true);
+  const { usuario, logout } = useAuth();
   const router = useRouter();
+  const backendUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3000";
+
+  // Estados
   const [clientes, setClientes] = useState<Cliente[]>([]);
   const [selectedCliente, setSelectedCliente] = useState<number | null>(null);
   const [clienteNombre, setClienteNombre] = useState<string>("");
@@ -64,33 +70,57 @@ export default function GenerarRecibo() {
   const [loadingHistorial, setLoadingHistorial] = useState(false);
   const [filtroCliente, setFiltroCliente] = useState<number | "">("");
   const [recibosFiltrados, setRecibosFiltrados] = useState<ReciboExistente[]>([]);
+  const [reciboParaImprimir, setReciboParaImprimir] = useState<ReciboExistente | null>(null);
+  const [showPrintModal, setShowPrintModal] = useState(false);
 
-  // ---------- Fetch de clientes ----------
+  const menuItems = [
+    { id: "dashboard", label: "Dashboard", icon: Home, href: "/admin/dashboard" },
+    { id: "maquinas", label: "Máquinas", icon: Wrench, href: "/admin/dashboard" },
+    { id: "usuarios", label: "Usuarios", icon: Users, href: "/admin/dashboard" },
+    { id: "proveedores", label: "Proveedores", icon: Truck, href: "/admin/dashboard" },
+    { id: "repuestos", label: "Repuestos", icon: Package, href: "/admin/dashboard" },
+    { id: "recibos", label: "Recibos", icon: FileText, href: "/admin/contabilidad" },
+    { id: "ordenesTrabajo", label: "Órdenes de Trabajo", icon: Clipboard, href: "/admin/ordenesTrabajo" },
+  ];
+
+  useEffect(() => {
+    fetchClientes();
+    const today = new Date().toISOString().split('T')[0];
+    setFechaActual(today);
+  }, []);
+
+  useEffect(() => {
+    if (selectedCliente) {
+      fetchMaquinasPorCliente(selectedCliente);
+    } else {
+      setMaquinasCliente([]);
+      setMaquinasRecibo([]);
+    }
+  }, [selectedCliente]);
+
+  useEffect(() => {
+    if (activeTab === "historial") {
+      fetchRecibosExistentes();
+    }
+  }, [activeTab]);
+
   const fetchClientes = async () => {
     setError(null);
     try {
-      console.log('Iniciando carga de datos...');
-      
-      const res = await fetch("http://localhost:3000/api/Usuario/Cliente");
+      const res = await fetch(`${backendUrl}/api/Usuario/Cliente`);
       if (!res.ok) throw new Error(`Error ${res.status} al cargar clientes`);
       const data = await res.json();
       setClientes(data);
-
-      console.log('Todos los datos cargados exitosamente.');
-
     } catch (err) {
       console.error("Error al cargar clientes:", err);
       setError(err instanceof Error ? err.message : "Error desconocido al cargar clientes");
     }
   };
 
-  // ---------- Fetch de máquinas por cliente ----------
   const fetchMaquinasPorCliente = async (clienteId: number) => {
     if (!clienteId) return;
     try {
-      console.log('Iniciando carga de datos...');
-
-      const res = await fetch(`http://localhost:3000/api/Maquina-Cliente/listar?cliente_id=${clienteId}`);
+      const res = await fetch(`${backendUrl}/api/Maquina-Cliente/listar?cliente_id=${clienteId}`);
       if (!res.ok) throw new Error(`Error ${res.status} al cargar máquinas`);
       const data = await res.json();
       
@@ -102,7 +132,6 @@ export default function GenerarRecibo() {
       }));
       setMaquinasCliente(maquinasFormateadas);
 
-      // AUTOMÁTICAMENTE agregar todas las máquinas al recibo
       const nuevasMaquinasRecibo: MaquinaRecibo[] = maquinasFormateadas.map((maquina: Maquina) => ({
         maquina_id: maquina.id,
         nombre: maquina.nombre,
@@ -112,9 +141,6 @@ export default function GenerarRecibo() {
         total: "0.00"
       }));
       setMaquinasRecibo(nuevasMaquinasRecibo);
-
-      console.log('Todos los datos cargados exitosamente.');
-
     } catch (err) {
       console.error("Error al cargar máquinas:", err);
       setMaquinasCliente([]);
@@ -122,16 +148,14 @@ export default function GenerarRecibo() {
     }
   };
 
-  // ---------- Fetch de recibos existentes ----------
   const fetchRecibosExistentes = async () => {
     setLoadingHistorial(true);
     try {
-      const res = await fetch('http://localhost:3000/api/Recibo');
+      const res = await fetch(`${backendUrl}/api/Recibo`);
       if (!res.ok) throw new Error('Error al cargar el historial de recibos');
       
       const result = await res.json();
       if (result.success) {
-        // Ordenar por ID más reciente primero (asumiendo que ID más alto = más reciente)
         const recibosOrdenados = result.data.sort((a: ReciboExistente, b: ReciboExistente) => 
           b.id - a.id
         );
@@ -148,7 +172,6 @@ export default function GenerarRecibo() {
     }
   };
 
-  // Filtrar recibos por cliente
   const filtrarRecibos = (clienteId: number | "") => {
     setFiltroCliente(clienteId);
     if (!clienteId) {
@@ -159,18 +182,15 @@ export default function GenerarRecibo() {
     }
   };
 
-  // Remover máquina del recibo
   const removerMaquinaDelRecibo = (maquinaId: number) => {
     setMaquinasRecibo(maquinasRecibo.filter(m => m.maquina_id !== maquinaId));
   };
 
-  // Actualizar valores de máquina
   const actualizarValorMaquina = (maquinaId: number, campo: keyof MaquinaRecibo, valor: string) => {
     setMaquinasRecibo(maquinasRecibo.map(maquina => {
       if (maquina.maquina_id === maquinaId) {
         const updated = { ...maquina, [campo]: valor };
         
-        // Calcular total si se actualizan ingresos o egresos
         if (campo === 'ingreso' || campo === 'egreso') {
           const ingreso = campo === 'ingreso' ? parseFloat(valor) || 0 : parseFloat(maquina.ingreso) || 0;
           const egreso = campo === 'egreso' ? parseFloat(valor) || 0 : parseFloat(maquina.egreso) || 0;
@@ -183,7 +203,6 @@ export default function GenerarRecibo() {
     }));
   };
 
-  // Calcular totales
   const calcularTotales = () => {
     const totalIngresos = maquinasRecibo.reduce((sum, maquina) => sum + (parseFloat(maquina.ingreso) || 0), 0);
     const totalEgresos = maquinasRecibo.reduce((sum, maquina) => sum + (parseFloat(maquina.egreso) || 0), 0);
@@ -200,14 +219,12 @@ export default function GenerarRecibo() {
     };
   };
 
-  // Generar recibo
   const generarRecibo = async () => {
     if (!selectedCliente || maquinasRecibo.length === 0) {
       setError("Seleccione un cliente y agregue al menos una máquina");
       return;
     }
 
-    // Validar que todas las máquinas tengan valores
     const maquinasIncompletas = maquinasRecibo.filter(m => !m.ingreso || !m.egreso);
     if (maquinasIncompletas.length > 0) {
       setError("Complete los ingresos y gastos para todas las máquinas");
@@ -229,9 +246,7 @@ export default function GenerarRecibo() {
         }))
       };
 
-      console.log('Enviando datos:', reciboData);
-
-      const response = await fetch('http://localhost:3000/api/Recibo', {
+      const response = await fetch(`${backendUrl}/api/Recibo`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -247,12 +262,10 @@ export default function GenerarRecibo() {
 
       if (result.success) {
         alert('Recibo generado exitosamente');
-        // Limpiar formulario
         setMaquinasRecibo([]);
         setSelectedCliente(null);
         setClienteNombre("");
         setMaquinasCliente([]);
-        // Recargar historial
         fetchRecibosExistentes();
       } else {
         throw new Error(result.error || 'Error al generar el recibo');
@@ -266,123 +279,361 @@ export default function GenerarRecibo() {
     }
   };
 
-  useEffect(() => {
-    fetchClientes();
+  const abrirVistaPrevia = (recibo: ReciboExistente) => {
+    setReciboParaImprimir(recibo);
+    setShowPrintModal(true);
+  };
 
-    // Generar fecha actual
-    const ahora = new Date();
-    const formato = ahora.toLocaleString("es-HN", {
-      year: "numeric",
-      month: "2-digit",
-      day: "2-digit",
-    });
-    setFechaActual(formato);
-    
-  }, []);
+  const imprimirRecibo = () => {
+    window.print();
+  };
 
-  useEffect(() => {
-    if (activeTab === "historial") {
-      fetchRecibosExistentes();
-    }
-  }, [activeTab]);
+  const handleLogout = () => {
+    logout();
+    router.push("/login");
+  };
 
   const totales = calcularTotales();
   const puedeGenerarRecibo = selectedCliente && maquinasRecibo.length > 0 && 
     maquinasRecibo.every(m => m.ingreso && m.egreso);
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-purple-50 via-blue-50 to-cyan-50">
-      {/* Header */}
-      <header className="bg-white/80 backdrop-blur-md border-b border-slate-200/60 shadow-sm sticky top-0 z-10">
-        <div className="px-8 py-6 flex items-center justify-between">
-          <button
-            onClick={() => router.push("./dashboard")}
-            className="flex items-center gap-2 px-4 py-2 text-slate-600 hover:text-slate-900 hover:bg-slate-100 rounded-lg transition-all duration-200"
-          >
-            <ArrowLeft className="w-5 h-5" />
-            <span className="font-medium">Volver</span>
-          </button>
-          <h1 className="text-3xl font-bold bg-gradient-to-r from-fuchsia-600 via-purple-600 to-blue-600 bg-clip-text text-transparent">
-             Sistema de Recibos
-          </h1>
-          <button
-            onClick={fetchClientes}
-            className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-cyan-500 to-blue-500 text-white rounded-lg hover:from-cyan-600 hover:to-blue-600 transition-all duration-200 shadow-lg hover:shadow-xl"
-          >
-            <RefreshCw className="w-4 h-4" />
-            Actualizar
-          </button>
-        </div>
-      </header>
-
-      {/* Tabs de Navegación - COLORES MULTICOLOR MEJORADOS */}
-      <div className="max-w-7xl mx-auto px-8 pt-6">
-        <div className="flex border-b border-slate-200/60 bg-white/50 backdrop-blur-sm rounded-t-2xl p-2 shadow-inner">
-          <button
-            onClick={() => setActiveTab("generar")}
-            className={`flex items-center gap-3 px-8 py-4 font-bold rounded-xl transition-all duration-300 transform hover:scale-105 ${
-              activeTab === "generar"
-                ? "bg-gradient-to-r from-green-400 via-emerald-500 to-teal-500 text-white shadow-2xl"
-                : "text-slate-500 hover:text-slate-700 hover:bg-white/80 border-2 border-transparent hover:border-emerald-200"
-            }`}
-          >
-            <Wrench className="w-5 h-5" />
-            Generar Recibo
-          </button>
-          <button
-            onClick={() => setActiveTab("historial")}
-            className={`flex items-center gap-3 px-8 py-4 font-bold rounded-xl transition-all duration-300 transform hover:scale-105 ${
-              activeTab === "historial"
-                ? "bg-gradient-to-r from-orange-400 via-red-500 to-pink-500 text-white shadow-2xl"
-                : "text-slate-500 hover:text-slate-700 hover:bg-white/80 border-2 border-transparent hover:border-pink-200"
-            }`}
-          >
-            <History className="w-5 h-5" />
-            Historial de Recibos
-          </button>
-        </div>
-      </div>
-
-      {/* Contenido Principal */}
-      <div className="max-w-7xl mx-auto px-8 py-6">
-        {error && (
-          <div className="mb-6 p-4 bg-gradient-to-r from-red-400 to-pink-500 text-white rounded-2xl shadow-lg animate-pulse">
-            <p className="flex items-center gap-2 font-semibold">
-              <span className="w-3 h-3 bg-white rounded-full animate-ping"></span>
-              {error}
-            </p>
-          </div>
-        )}
-
-        {/* TAB: GENERAR RECIBO */}
-        {activeTab === "generar" && (
-          <>
-            {/* Detalles del Cliente */}
-            <div className="bg-white/80 backdrop-blur-sm rounded-2xl shadow-xl border border-white/60 mb-6 overflow-hidden">
-              <div className="px-6 py-4 border-b border-white/40 bg-gradient-to-r from-cyan-400 to-blue-500">
-                <h2 className="text-lg font-bold text-white flex items-center gap-2">
-                  <User className="w-5 h-5" />
-                  Detalles del Cliente
-                </h2>
+    <div className="flex h-screen bg-gradient-to-br from-gray-50 to-gray-100 overflow-hidden">
+      {/* SIDEBAR */}
+      <aside className={`${sidebarOpen ? "w-64" : "w-20"} bg-white border-r border-gray-200 transition-all duration-300 flex flex-col shadow-lg print:hidden`}>
+        <div className="p-6 border-b border-gray-200">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-purple-600 rounded-xl flex items-center justify-center shadow-lg flex-shrink-0">
+              <Package className="w-5 h-5 text-white" />
+            </div>
+            {sidebarOpen && (
+              <div>
+                <h1 className="font-bold text-gray-900 text-lg">Admin Panel</h1>
+                <p className="text-xs text-gray-500">Sistema de Gestión</p>
               </div>
-              <div className="p-6">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  <div>
-                    <label className="block text-sm font-semibold text-slate-700 mb-2">
-                      Nombre del Cliente
-                    </label>
-                    <select
-                      value={selectedCliente ?? ""}
-                      className="w-full border-2 border-slate-200 rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:border-cyan-500 text-slate-900 bg-white/80 transition-all duration-200 hover:border-cyan-300"
-                      onChange={(e) => {
-                        const id = Number(e.target.value);
-                        const nombre = clientes.find(c => c.id === id)?.nombre_usuario || "";
-                        setSelectedCliente(id);
-                        setClienteNombre(nombre);
-                        fetchMaquinasPorCliente(id);
-                      }}
+            )}
+          </div>
+        </div>
+
+        <nav className="flex-1 p-4 overflow-y-auto">
+          <ul className="space-y-2">
+            {menuItems.map((item) => {
+              const IconComponent = item.icon;
+              const isActive = item.id === "recibos";
+              return (
+                <li key={item.id}>
+                  <button
+                    onClick={() => {
+                      if (item.href) {
+                        router.push(item.href);
+                      }
+                    }}
+                    className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-all ${
+                      isActive ? "bg-gradient-to-r from-blue-500 to-purple-600 text-white shadow-md" : "text-gray-700 hover:bg-gray-100"
+                    }`}
+                  >
+                    <IconComponent className="w-5 h-5 flex-shrink-0" />
+                    {sidebarOpen && <span className="font-medium text-sm">{item.label}</span>}
+                  </button>
+                </li>
+              );
+            })}
+          </ul>
+        </nav>
+
+        <div className="p-4 border-t border-gray-200">
+          <button
+            onClick={() => setSidebarOpen(!sidebarOpen)}
+            className="w-full flex items-center justify-center gap-2 px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors mb-2"
+          >
+            {sidebarOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
+            {sidebarOpen && <span className="text-sm font-medium">Ocultar</span>}
+          </button>
+        </div>
+      </aside>
+
+      {/* MAIN CONTENT */}
+      <main className="flex-1 overflow-y-auto">
+        {/* Header */}
+        <header className="bg-white border-b border-gray-200 sticky top-0 z-10 shadow-sm print:hidden">
+          <div className="px-8 py-6 flex items-center justify-between">
+            <div>
+              <h1 className="text-2xl font-bold text-gray-900">Sistema de Recibos</h1>
+              <p className="text-sm text-gray-600">Gestión de recibos y facturación</p>
+            </div>
+            <div className="flex items-center gap-4">
+              <span className="text-sm text-gray-600">Bienvenido, {usuario?.nombre_usuario}</span>
+              <button
+                onClick={handleLogout}
+                className="px-4 py-2 bg-red-50 text-red-600 rounded-lg hover:bg-red-100 transition-colors font-medium text-sm flex items-center gap-2"
+              >
+                <LogOut className="w-4 h-4" />
+                Cerrar sesión
+              </button>
+            </div>
+          </div>
+        </header>
+
+        {/* Tabs */}
+        <div className="bg-white border-b border-gray-200 px-8 print:hidden">
+          <div className="flex gap-2">
+            <button
+              onClick={() => setActiveTab("generar")}
+              className={`px-6 py-3 font-medium transition-all ${
+                activeTab === "generar"
+                  ? "border-b-2 border-blue-600 text-blue-600"
+                  : "text-gray-600 hover:text-gray-900"
+              }`}
+            >
+              <div className="flex items-center gap-2">
+                <FileText className="w-4 h-4" />
+                Generar Recibo
+              </div>
+            </button>
+            <button
+              onClick={() => setActiveTab("historial")}
+              className={`px-6 py-3 font-medium transition-all ${
+                activeTab === "historial"
+                  ? "border-b-2 border-blue-600 text-blue-600"
+                  : "text-gray-600 hover:text-gray-900"
+              }`}
+            >
+              <div className="flex items-center gap-2">
+                <History className="w-4 h-4" />
+                Historial de Recibos
+              </div>
+            </button>
+          </div>
+        </div>
+
+        {/* Content */}
+        <div className="p-8">
+          {error && (
+            <div className="mb-6 p-4 bg-red-50 border border-red-200 text-red-600 rounded-lg">
+              <p className="font-medium">{error}</p>
+            </div>
+          )}
+
+          {/* TAB: GENERAR RECIBO */}
+          {activeTab === "generar" && (
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+              {/* Columna Izquierda */}
+              <div className="lg:col-span-2 space-y-6">
+                {/* Detalles del Cliente */}
+                <div className="bg-white rounded-xl shadow-sm p-6">
+                  <h2 className="text-xl font-bold text-gray-900 mb-6">Detalles del Cliente</h2>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                        Nombre del Cliente
+                      </label>
+                      <select
+                        value={selectedCliente ?? ""}
+                        onChange={(e) => {
+                          const id = Number(e.target.value);
+                          const nombre = clientes.find(c => c.id === id)?.nombre_usuario || "";
+                          setSelectedCliente(id);
+                          setClienteNombre(nombre);
+                          fetchMaquinasPorCliente(id);
+                        }}
+                        className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-gray-700"
+                      >
+                        <option value="">Seleccione un cliente</option>
+                        {clientes.map((cliente) => (
+                          <option key={cliente.id} value={cliente.id}>
+                            {cliente.nombre_usuario}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                        Fecha del Recibo
+                      </label>
+                      <div className="relative">
+                        <input
+                          type="date"
+                          value={fechaActual}
+                          onChange={(e) => setFechaActual(e.target.value)}
+                          className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-gray-700"
+                        />
+                        <Calendar className="w-5 h-5 text-gray-400 absolute right-3 top-1/2 transform -translate-y-1/2 pointer-events-none" />
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Mensaje cuando no hay máquinas */}
+                {selectedCliente && maquinasCliente.length === 0 && (
+                  <div className="bg-yellow-50 border border-yellow-200 rounded-xl p-6">
+                    <div className="flex items-center gap-4">
+                      <Wrench className="w-8 h-8 text-yellow-600" />
+                      <div>
+                        <h3 className="font-bold text-yellow-900 text-lg">Sin máquinas asignadas</h3>
+                        <p className="text-yellow-700 text-sm mt-1">
+                          El cliente seleccionado no tiene ninguna máquina asignada.
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {/* Desglose por Máquina */}
+                {maquinasRecibo.length > 0 && (
+                  <div className="bg-white rounded-xl shadow-sm p-6">
+                    <h2 className="text-xl font-bold text-gray-900 mb-6">Desglose por Máquina</h2>
+                    <div className="overflow-x-auto">
+                      <table className="w-full">
+                        <thead className="bg-gray-50">
+                          <tr>
+                            <th className="px-4 py-3 text-left text-sm font-semibold text-gray-700">ID Máquina</th>
+                            <th className="px-4 py-3 text-left text-sm font-semibold text-gray-700">Ingresos (LPS)</th>
+                            <th className="px-4 py-3 text-left text-sm font-semibold text-gray-700">Gastos (LPS)</th>
+                            <th className="px-4 py-3 text-left text-sm font-semibold text-gray-700">Total (LPS)</th>
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y divide-gray-200">
+                          {maquinasRecibo.map((maquina) => (
+                            <tr key={maquina.maquina_id} className="hover:bg-gray-50">
+                              <td className="px-4 py-4">
+                                <div className="flex items-center gap-3">
+                                  <div className="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center">
+                                    <Wrench className="w-5 h-5 text-blue-600" />
+                                  </div>
+                                  <div>
+                                    <p className="font-medium text-gray-900">{maquina.codigo}</p>
+                                    <p className="text-xs text-gray-500">{maquina.nombre}</p>
+                                  </div>
+                                </div>
+                              </td>
+                              <td className="px-4 py-4">
+                                <input
+                                  type="number"
+                                  step="0.01"
+                                  value={maquina.ingreso}
+                                  onChange={(e) => actualizarValorMaquina(maquina.maquina_id, 'ingreso', e.target.value)}
+                                  className="w-32 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 text-gray-700"
+                                  placeholder="0.00"
+                                />
+                              </td>
+                              <td className="px-4 py-4">
+                                <input
+                                  type="number"
+                                  step="0.01"
+                                  value={maquina.egreso}
+                                  onChange={(e) => actualizarValorMaquina(maquina.maquina_id, 'egreso', e.target.value)}
+                                  className="w-32 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 text-gray-700"
+                                  placeholder="0.00"
+                                />
+                              </td>
+                              <td className="px-4 py-4">
+                                <span className="font-semibold text-gray-900">
+                                  {parseFloat(maquina.total || '0').toFixed(2)} LPS
+                                </span>
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {/* Columna Derecha - Resumen */}
+              {maquinasRecibo.length > 0 && (
+                <div className="space-y-6">
+                  <div className="bg-white rounded-xl shadow-sm p-6 sticky top-24">
+                    <h2 className="text-xl font-bold text-gray-900 mb-6">Resumen Financiero</h2>
+                    
+                    <div className="space-y-4 mb-6">
+                      <div className="flex justify-between items-center">
+                        <span className="text-gray-600">Total Ingresos</span>
+                        <span className="text-lg font-semibold text-gray-900">
+                          {parseFloat(totales.totalIngresos).toFixed(2)} LPS
+                        </span>
+                      </div>
+                      <div className="flex justify-between items-center">
+                        <span className="text-gray-600">Total Gastos</span>
+                        <span className="text-lg font-semibold text-gray-900">
+                          {parseFloat(totales.totalEgresos).toFixed(2)} LPS
+                        </span>
+                      </div>
+                    </div>
+
+                    <div className="border-t border-gray-200 pt-4 mb-6">
+                      <div className="flex justify-between items-center mb-6">
+                        <span className="text-lg font-semibold text-gray-900">Total Neto</span>
+                        <span className="text-2xl font-bold text-gray-900">
+                          {parseFloat(totales.totalNeto).toFixed(2)} LPS
+                        </span>
+                      </div>
+
+                      <div className="space-y-4 bg-gray-50 rounded-lg p-4">
+                        <h3 className="font-semibold text-gray-900 mb-3">División de Ganancias</h3>
+                        <div className="flex justify-between items-center">
+                          <span className="text-sm text-gray-600">Parte Propietario (60%)</span>
+                          <span className="text-lg font-bold text-green-600">
+                            {parseFloat(totales.parteEmpresa).toFixed(2)} LPS
+                          </span>
+                        </div>
+                        <div className="flex justify-between items-center">
+                          <span className="text-sm text-gray-600">Parte Cliente (40%)</span>
+                          <span className="text-lg font-bold text-blue-600">
+                            {parseFloat(totales.parteCliente).toFixed(2)} LPS
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+
+                    <button
+                      onClick={generarRecibo}
+                      disabled={!puedeGenerarRecibo || loading}
+                      className="w-full px-6 py-3 bg-gradient-to-r from-blue-500 to-purple-600 text-white rounded-lg hover:shadow-lg transition-all font-medium flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
                     >
-                      <option value="" disabled>Seleccione un cliente</option>
+                      {loading ? (
+                        <>
+                          <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white"></div>
+                          Creando...
+                        </>
+                      ) : (
+                        <>
+                          <FileText className="w-5 h-5" />
+                          Crear Recibo
+                        </>
+                      )}
+                    </button>
+                    
+                    <p className="text-xs text-gray-500 text-center mt-3">
+                      Complete todos los campos para generar el recibo
+                    </p>
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* TAB: HISTORIAL */}
+          {activeTab === "historial" && (
+            <div className="bg-white rounded-xl shadow-sm">
+              <div className="px-6 py-4 border-b border-gray-200">
+                <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
+                  <div>
+                    <h2 className="text-xl font-bold text-gray-900">Historial de Recibos</h2>
+                    <p className="text-sm text-gray-600 mt-1">
+                      {recibosFiltrados.length} {recibosFiltrados.length === 1 ? 'recibo encontrado' : 'recibos encontrados'}
+                    </p>
+                  </div>
+                  
+                  <div className="flex items-center gap-3">
+                    <Filter className="w-5 h-5 text-gray-600" />
+                    <select
+                      value={filtroCliente}
+                      onChange={(e) => filtrarRecibos(e.target.value ? Number(e.target.value) : "")}
+                      className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 text-gray-700"
+                    >
+                      <option value="">Todos los clientes</option>
                       {clientes.map((cliente) => (
                         <option key={cliente.id} value={cliente.id}>
                           {cliente.nombre_usuario}
@@ -390,410 +641,312 @@ export default function GenerarRecibo() {
                       ))}
                     </select>
                   </div>
-                  <div>
-                    <label className="block text-sm font-semibold text-slate-700 mb-2">
-                      Fecha del Recibo
-                    </label>
-                    <div className="relative">
-                      <input
-                        type="text"
-                        value={fechaActual}
-                        readOnly
-                        className="w-full border-2 border-slate-200 bg-slate-100/80 text-slate-700 rounded-xl px-4 py-3 cursor-not-allowed pr-12 font-medium"
-                      />
-                      <Calendar className="w-5 h-5 text-cyan-500 absolute right-4 top-3.5" />
-                    </div>
-                  </div>
                 </div>
               </div>
-            </div>
 
-            {/* Mensaje cuando no hay máquinas */}
-            {selectedCliente && maquinasCliente.length === 0 && (
-              <div className="bg-gradient-to-r from-amber-400 to-orange-500 rounded-2xl p-6 mb-6 animate-fade-in shadow-xl">
-                <div className="flex items-center gap-4">
-                  <div className="w-12 h-12 bg-white/20 rounded-xl flex items-center justify-center backdrop-blur-sm">
-                    <Wrench className="w-6 h-6 text-white" />
+              <div className="p-6">
+                {loadingHistorial ? (
+                  <div className="text-center py-16">
+                    <div className="animate-spin rounded-full h-16 w-16 border-b-2 border-blue-500 mx-auto mb-6"></div>
+                    <p className="text-gray-600 font-medium">Cargando recibos...</p>
                   </div>
-                  <div>
-                    <h3 className="font-bold text-white text-lg">Sin máquinas asignadas</h3>
-                    <p className="text-white/90 text-sm mt-1">
-                      El cliente seleccionado no tiene ninguna máquina asignada. 
-                      Asigne máquinas al cliente antes de generar un recibo.
-                    </p>
-                  </div>
-                </div>
-              </div>
-            )}
-
-            {/* Desglose por Máquina */}
-            {maquinasRecibo.length > 0 && (
-              <div className="bg-white/80 backdrop-blur-sm rounded-2xl shadow-xl border border-white/60 mb-6 overflow-hidden">
-                <div className="px-6 py-4 border-b border-white/40 bg-gradient-to-r from-emerald-400 to-green-500">
-                  <h2 className="text-lg font-bold text-white flex items-center gap-2">
-                    <Wrench className="w-5 h-5" />
-                    Desglose por Máquina
-                  </h2>
-                  <p className="text-white/90 text-sm mt-1">
-                    Complete los ingresos y gastos para cada máquina del cliente
-                  </p>
-                </div>
-                <div className="p-6">
-                  <div className="overflow-x-auto rounded-xl border-2 border-white/40 shadow-inner">
-                    <table className="w-full">
-                      <thead className="bg-gradient-to-r from-slate-50 to-white/80">
-                        <tr>
-                          <th className="text-left py-5 px-6 font-bold text-slate-700 border-b border-white/40">ID MÁQUINA</th>
-                          <th className="text-left py-5 px-6 font-bold text-slate-700 border-b border-white/40">INGRESOS (LPS)</th>
-                          <th className="text-left py-5 px-6 font-bold text-slate-700 border-b border-white/40">GASTOS (LPS)</th>
-                          <th className="text-left py-5 px-6 font-bold text-slate-700 border-b border-white-40">TOTAL (LPS)</th>
-                          <th className="text-left py-5 px-6 font-bold text-slate-700 border-b border-white/40">ACCIONES</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {maquinasRecibo.map((maquina) => (
-                          <tr key={maquina.maquina_id} className="border-b border-white/40 hover:bg-cyan-50/50 transition-all duration-300">
-                            <td className="py-5 px-6">
-                              <div className="flex items-center gap-4">
-                                <div className="w-12 h-12 bg-gradient-to-br from-orange-400 to-red-500 rounded-xl flex items-center justify-center shadow-lg">
-                                  <Wrench className="w-6 h-6 text-white" />
-                                </div>
-                                <div>
-                                  <p className="font-bold text-slate-900 text-lg">{maquina.codigo}</p>
-                                  <p className="text-sm text-slate-600">{maquina.nombre}</p>
-                                </div>
+                ) : recibosFiltrados.length > 0 ? (
+                  <div className="space-y-6">
+                    {recibosFiltrados.map((recibo) => (
+                      <div 
+                        key={recibo.lote_recibo} 
+                        className="border border-gray-200 rounded-xl p-6 hover:shadow-md transition-all"
+                      >
+                        {/* Header del Recibo */}
+                        <div className="flex flex-col lg:flex-row lg:items-start lg:justify-between mb-6 gap-4">
+                          <div className="flex-1">
+                            <div className="flex items-center gap-4 mb-3">
+                              <div className="w-12 h-12 bg-gradient-to-r from-blue-500 to-purple-600 rounded-lg flex items-center justify-center shadow-md">
+                                <span className="text-white font-bold">#{recibo.lote_recibo}</span>
                               </div>
-                            </td>
-                            <td className="py-5 px-6">
-                              <div className="relative">
-                                <DollarSign className="w-5 h-5 text-emerald-500 absolute left-4 top-3" />
-                                <input
-                                  type="number"
-                                  step="0.01"
-                                  value={maquina.ingreso}
-                                  onChange={(e) => actualizarValorMaquina(maquina.maquina_id, 'ingreso', e.target.value)}
-                                  className="w-full border-2 border-emerald-200 rounded-xl pl-12 pr-4 py-3 text-right font-semibold focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 text-slate-900 bg-white/80 transition-all duration-200"
-                                  placeholder="0.00"
-                                />
+                              <div>
+                                <h3 className="text-xl font-bold text-gray-900">
+                                  {recibo.cliente.nombre}
+                                </h3>
+                                <p className="text-sm text-gray-600 flex items-center gap-2">
+                                  <Calendar className="w-4 h-4" />
+                                  {new Date(recibo.fecha_recibo).toLocaleDateString('es-ES', {
+                                    year: 'numeric',
+                                    month: 'long',
+                                    day: 'numeric'
+                                  })}
+                                </p>
                               </div>
-                            </td>
-                            <td className="py-5 px-6">
-                              <div className="relative">
-                                <DollarSign className="w-5 h-5 text-red-500 absolute left-4 top-3" />
-                                <input
-                                  type="number"
-                                  step="0.01"
-                                  value={maquina.egreso}
-                                  onChange={(e) => actualizarValorMaquina(maquina.maquina_id, 'egreso', e.target.value)}
-                                  className="w-full border-2 border-red-200 rounded-xl pl-12 pr-4 py-3 text-right font-semibold focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-red-500 text-slate-900 bg-white/80 transition-all duration-200"
-                                  placeholder="0.00"
-                                />
-                              </div>
-                            </td>
-                            <td className="py-5 px-6">
-                              <div className="text-right font-bold text-slate-900 bg-gradient-to-r from-slate-100 to-white py-3 px-4 rounded-xl border-2 border-slate-200 text-lg">
-                                {parseFloat(maquina.total || '0').toLocaleString('es-ES', {
-                                  minimumFractionDigits: 2,
-                                  maximumFractionDigits: 2
-                                })} LPS
-                              </div>
-                            </td>
-                            <td className="py-5 px-6">
-                              <button
-                                onClick={() => removerMaquinaDelRecibo(maquina.maquina_id)}
-                                className="p-3 text-white bg-gradient-to-r from-red-400 to-pink-500 rounded-xl transition-all duration-300 transform hover:scale-110 shadow-lg hover:shadow-xl"
-                                title="Remover máquina"
-                              >
-                                <Trash2 className="w-5 h-5" />
-                              </button>
-                            </td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  </div>
-                </div>
-              </div>
-            )}
-
-            {/* Resumen Financiero */}
-            {maquinasRecibo.length > 0 && (
-              <div className="bg-white/80 backdrop-blur-sm rounded-2xl shadow-xl border border-white/60 mb-6 overflow-hidden">
-                <div className="px-6 py-4 border-b border-white/40 bg-gradient-to-r from-purple-400 to-indigo-500">
-                  <h2 className="text-lg font-bold text-white flex items-center gap-2">
-                    <DollarSign className="w-5 h-5" />
-                    Resumen Financiero
-                  </h2>
-                </div>
-                <div className="p-6">
-                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-                    {/* Totales Básicos */}
-                    <div className="bg-gradient-to-br from-cyan-400 to-blue-500 rounded-2xl p-6 border-2 border-white/40 shadow-2xl">
-                      <h3 className="text-lg font-bold text-white mb-6 flex items-center gap-3">
-                        <div className="w-8 h-8 bg-white/20 rounded-lg flex items-center justify-center">
-                          <DollarSign className="w-4 h-4 text-white" />
-                        </div>
-                        Resumen de Totales
-                      </h3>
-                      <div className="space-y-5">
-                        <div className="flex justify-between items-center py-4 border-b border-white/30">
-                          <span className="text-white/90 font-semibold">Total Ingresos</span>
-                          <span className="font-bold text-white text-xl">
-                            {parseFloat(totales.totalIngresos).toLocaleString('es-ES', {
-                              minimumFractionDigits: 2,
-                              maximumFractionDigits: 2
-                            })} LPS
-                          </span>
-                        </div>
-                        <div className="flex justify-between items-center py-4 border-b border-white/30">
-                          <span className="text-white/90 font-semibold">Total Gastos</span>
-                          <span className="font-bold text-white text-xl">
-                            {parseFloat(totales.totalEgresos).toLocaleString('es-ES', {
-                              minimumFractionDigits: 2,
-                              maximumFractionDigits: 2
-                            })} LPS
-                          </span>
-                        </div>
-                        <div className="flex justify-between items-center py-5 bg-white/20 rounded-xl px-6 border-2 border-white/30 backdrop-blur-sm">
-                          <span className="text-xl font-bold text-white">Total Neto</span>
-                          <span className="text-2xl font-black text-white">
-                            {parseFloat(totales.totalNeto).toLocaleString('es-ES', {
-                              minimumFractionDigits: 2,
-                              maximumFractionDigits: 2
-                            })} LPS
-                          </span>
-                        </div>
-                      </div>
-                    </div>
-
-                    {/* División de Ganancias */}
-                    <div className="bg-gradient-to-br from-emerald-400 to-green-500 rounded-2xl p-6 border-2 border-white/40 shadow-2xl">
-                      <h3 className="text-lg font-bold text-white mb-6 flex items-center gap-3">
-                        <div className="w-8 h-8 bg-white/20 rounded-lg flex items-center justify-center">
-                          <User className="w-4 h-4 text-white" />
-                        </div>
-                        División de Ganancias
-                      </h3>
-                      <div className="space-y-5">
-                        <div className="flex justify-between items-center py-4 border-b border-white/30">
-                          <span className="text-white/90 font-semibold">Parte Propietario (60%)</span>
-                          <span className="font-bold text-white text-xl">
-                            {parseFloat(totales.parteEmpresa).toLocaleString('es-ES', {
-                              minimumFractionDigits: 2,
-                              maximumFractionDigits: 2
-                            })} LPS
-                          </span>
-                        </div>
-                        <div className="flex justify-between items-center py-5 bg-white/20 rounded-xl px-6 border-2 border-white/30 backdrop-blur-sm">
-                          <span className="text-lg font-bold text-white">Parte Cliente (40%)</span>
-                          <span className="text-2xl font-black text-white">
-                            {parseFloat(totales.parteCliente).toLocaleString('es-ES', {
-                              minimumFractionDigits: 2,
-                              maximumFractionDigits: 2
-                            })} LPS
-                          </span>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            )}
-
-            {/* Botón Crear Recibo */}
-            {maquinasRecibo.length > 0 && (
-              <div className="flex justify-center">
-                <button
-                  onClick={generarRecibo}
-                  disabled={!puedeGenerarRecibo || loading}
-                  className={`px-16 py-5 rounded-2xl font-black text-white transition-all duration-300 transform hover:scale-110 shadow-2xl ${
-                    puedeGenerarRecibo && !loading
-                      ? 'bg-gradient-to-r from-fuchsia-500 via-purple-500 to-indigo-500 hover:from-fuchsia-600 hover:via-purple-600 hover:to-indigo-600 shadow-2xl hover:shadow-3xl'
-                      : 'bg-slate-400 cursor-not-allowed'
-                  } flex items-center gap-4 text-lg`}
-                >
-                  {loading ? (
-                    <>
-                      <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-white"></div>
-                      Creando Recibo...
-                    </>
-                  ) : (
-                    <>
-                      <div className="w-8 h-8 bg-white/20 rounded-full flex items-center justify-center">
-                        <DollarSign className="w-4 h-4 text-white" />
-                      </div>
-                       Crear Recibo
-                    </>
-                  )}
-                </button>
-              </div>
-            )}
-          </>
-        )}
-
-        {/* TAB: HISTORIAL DE RECIBOS */}
-        {activeTab === "historial" && (
-          <div className="bg-white/80 backdrop-blur-sm rounded-2xl shadow-xl border border-white/60 overflow-hidden">
-            <div className="px-6 py-4 border-b border-white/40 bg-gradient-to-r from-orange-400 to-red-500">
-              <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
-                <div>
-                  <h2 className="text-lg font-bold text-white flex items-center gap-2">
-                    <History className="w-5 h-5" />
-                    Historial de Recibos
-                  </h2>
-                  <p className="text-white/90 text-sm mt-1">
-                    {recibosFiltrados.length} {recibosFiltrados.length === 1 ? 'recibo encontrado' : 'recibos encontrados'}
-                  </p>
-                </div>
-                
-                {/* Filtro por Cliente */}
-                <div className="flex items-center gap-3">
-                  <Filter className="w-5 h-5 text-white" />
-                  <select
-                    value={filtroCliente}
-                    onChange={(e) => filtrarRecibos(e.target.value ? Number(e.target.value) : "")}
-                    className="border-2 border-white/40 bg-white/90 rounded-xl px-4 py-2 focus:outline-none focus:ring-2 focus:ring-orange-500 text-slate-900 font-semibold min-w-[200px] backdrop-blur-sm"
-                  >
-                    <option value="">Todos los clientes</option>
-                    {clientes.map((cliente) => (
-                      <option key={cliente.id} value={cliente.id}>
-                        {cliente.nombre_usuario}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-              </div>
-            </div>
-
-            <div className="p-6">
-              {loadingHistorial ? (
-                <div className="text-center py-16">
-                  <div className="animate-spin rounded-full h-16 w-16 border-b-2 border-orange-500 mx-auto mb-6"></div>
-                  <p className="text-slate-600 font-semibold text-lg">Cargando recibos...</p>
-                </div>
-              ) : recibosFiltrados.length > 0 ? (
-                <div className="space-y-8">
-                  {recibosFiltrados.map((recibo, index) => (
-                    <div 
-                      key={recibo.lote_recibo} 
-                      className="border-2 border-white/60 rounded-2xl p-8 hover:shadow-2xl transition-all duration-500 bg-gradient-to-br from-white to-slate-50/80 backdrop-blur-sm transform hover:scale-[1.02]"
-                      style={{
-                        animationDelay: `${index * 100}ms`,
-                        animation: 'fadeInUp 0.6s ease-out'
-                      }}
-                    >
-                      {/* Header del Recibo */}
-                      <div className="flex flex-col lg:flex-row lg:items-start lg:justify-between mb-8 gap-6">
-                        <div className="flex-1">
-                          <div className="flex items-center gap-4 mb-4">
-                            <div className="w-14 h-14 bg-gradient-to-r from-purple-500 to-pink-500 rounded-2xl flex items-center justify-center shadow-2xl">
-                              <span className="text-white font-black text-lg">#{recibo.lote_recibo}</span>
-                            </div>
-                            <div>
-                              <h3 className="text-2xl font-black text-slate-900 bg-gradient-to-r from-slate-900 to-slate-700 bg-clip-text text-transparent">
-                                {recibo.cliente.nombre}
-                              </h3>
-                              <p className="text-slate-600 flex items-center gap-2 font-semibold">
-                                <Calendar className="w-4 h-4 text-cyan-500" />
-                                {new Date(recibo.fecha_recibo).toLocaleDateString('es-ES', {
-                                  weekday: 'long',
-                                  year: 'numeric',
-                                  month: 'long',
-                                  day: 'numeric'
-                                })}
-                              </p>
                             </div>
                           </div>
+                          <div className="flex gap-3">
+                            <span className="inline-flex items-center gap-2 px-3 py-1 bg-blue-100 text-blue-700 rounded-lg text-sm font-semibold">
+                              <Wrench className="w-4 h-4" />
+                              {recibo.maquinas.length} máquina(s)
+                            </span>
+                            <button
+                              onClick={() => abrirVistaPrevia(recibo)}
+                              className="px-4 py-2 bg-gradient-to-r from-green-500 to-emerald-600 text-white rounded-lg hover:shadow-lg transition-all font-medium flex items-center gap-2"
+                            >
+                              <Printer className="w-4 h-4" />
+                              Imprimir
+                            </button>
+                          </div>
                         </div>
-                        <div className="flex gap-3">
-                          <span className="inline-flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-cyan-400 to-blue-500 text-white rounded-xl text-sm font-black shadow-lg">
-                            <Wrench className="w-4 h-4" />
-                            {recibo.maquinas.length} máquina(s)
-                          </span>
-                        </div>
-                      </div>
 
-                      {/* Máquinas del lote */}
-                      <div className="mb-8">
-                        <h4 className="font-black text-slate-800 mb-6 flex items-center gap-3 text-lg">
-                          <Wrench className="w-5 h-5 text-orange-500" />
-                          Máquinas incluidas
-                        </h4>
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                          {recibo.maquinas.map((maquina) => (
-                            <div key={maquina.id} className="flex items-center justify-between p-4 bg-white/80 rounded-xl border-2 border-slate-200/60 shadow-lg hover:shadow-xl transition-all duration-300">
-                              <div className="flex items-center gap-4">
-                                <div className="w-10 h-10 bg-gradient-to-br from-orange-400 to-red-500 rounded-xl flex items-center justify-center shadow-md">
-                                  <Wrench className="w-4 h-4 text-white" />
+                        {/* Máquinas del recibo */}
+                        <div className="mb-6">
+                          <h4 className="font-semibold text-gray-800 mb-4 flex items-center gap-2">
+                            <Wrench className="w-5 h-5 text-blue-500" />
+                            Máquinas incluidas
+                          </h4>
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                            {recibo.maquinas.map((maquina) => (
+                              <div key={maquina.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg border border-gray-200">
+                                <div className="flex items-center gap-3">
+                                  <div className="w-8 h-8 bg-blue-100 rounded-lg flex items-center justify-center">
+                                    <Wrench className="w-4 h-4 text-blue-600" />
+                                  </div>
+                                  <div>
+                                    <p className="font-medium text-gray-900">{maquina.codigo}</p>
+                                    <p className="text-xs text-gray-600">{maquina.nombre}</p>
+                                  </div>
                                 </div>
-                                <div>
-                                  <p className="font-bold text-slate-900">{maquina.codigo}</p>
-                                  <p className="text-sm text-slate-600">{maquina.nombre}</p>
+                                <div className="text-right">
+                                  <p className="font-bold text-gray-900">
+                                    {maquina.total.toFixed(2)} LPS
+                                  </p>
+                                  <p className="text-xs text-gray-500">
+                                    {maquina.ingreso.toFixed(2)} - {maquina.egreso.toFixed(2)}
+                                  </p>
                                 </div>
                               </div>
-                              <div className="text-right">
-                                <p className="font-black text-slate-900 text-lg">
-                                  {maquina.total.toLocaleString('es-ES', { minimumFractionDigits: 2 })} LPS
-                                </p>
-                                <p className="text-xs text-slate-500 font-semibold">
-                                  {maquina.ingreso.toLocaleString('es-ES', { minimumFractionDigits: 2 })} LPS - {maquina.egreso.toLocaleString('es-ES', { minimumFractionDigits: 2 })} LPS
-                                </p>
-                              </div>
-                            </div>
-                          ))}
+                            ))}
+                          </div>
                         </div>
-                      </div>
 
-                      {/* Resumen del lote */}
-                      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 pt-8 border-t-2 border-slate-200/60">
-                        <div className="text-center p-5 bg-gradient-to-br from-cyan-400 to-blue-500 rounded-2xl border-2 border-white/40 shadow-2xl">
-                          <p className="text-white/90 font-semibold text-sm">Total Ingresos</p>
-                          <p className="text-2xl font-black text-white">
-                            {recibo.total_ingresos.toLocaleString('es-ES', { minimumFractionDigits: 2 })} LPS
-                          </p>
-                        </div>
-                        <div className="text-center p-5 bg-gradient-to-br from-red-400 to-pink-500 rounded-2xl border-2 border-white/40 shadow-2xl">
-                          <p className="text-white/90 font-semibold text-sm">Total Gastos</p>
-                          <p className="text-2xl font-black text-white">
-                            {recibo.total_egresos.toLocaleString('es-ES', { minimumFractionDigits: 2 })} LPS
-                          </p>
-                        </div>
-                        <div className="text-center p-5 bg-gradient-to-br from-emerald-400 to-green-500 rounded-2xl border-2 border-white/40 shadow-2xl">
-                          <p className="text-white/90 font-semibold text-sm">Total Neto</p>
-                          <p className="text-2xl font-black text-white">
-                            {recibo.total_neto.toLocaleString('es-ES', { minimumFractionDigits: 2 })} LPS
-                          </p>
-                        </div>
-                        <div className="text-center p-5 bg-gradient-to-br from-purple-400 to-indigo-500 rounded-2xl border-2 border-white/40 shadow-2xl">
-                          <p className="text-white/90 font-semibold text-sm">Parte Cliente</p>
-                          <p className="text-2xl font-black text-white">
-                            {recibo.parte_cliente.toLocaleString('es-ES', { minimumFractionDigits: 2 })} LPS
-                          </p>
+                        {/* Resumen financiero */}
+                        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 pt-4 border-t border-gray-200">
+                          <div className="text-center p-3 bg-blue-50 rounded-lg">
+                            <p className="text-xs text-blue-600 font-medium">Total Ingresos</p>
+                            <p className="text-lg font-bold text-blue-700">
+                              {recibo.total_ingresos.toFixed(2)} LPS
+                            </p>
+                          </div>
+                          <div className="text-center p-3 bg-red-50 rounded-lg">
+                            <p className="text-xs text-red-600 font-medium">Total Gastos</p>
+                            <p className="text-lg font-bold text-red-700">
+                              {recibo.total_egresos.toFixed(2)} LPS
+                            </p>
+                          </div>
+                          <div className="text-center p-3 bg-green-50 rounded-lg">
+                            <p className="text-xs text-green-600 font-medium">Total Neto</p>
+                            <p className="text-lg font-bold text-green-700">
+                              {recibo.total_neto.toFixed(2)} LPS
+                            </p>
+                          </div>
+                          <div className="text-center p-3 bg-purple-50 rounded-lg">
+                            <p className="text-xs text-purple-600 font-medium">Parte Cliente</p>
+                            <p className="text-lg font-bold text-purple-700">
+                              {recibo.parte_cliente.toFixed(2)} LPS
+                            </p>
+                          </div>
                         </div>
                       </div>
-                    </div>
-                  ))}
-                </div>
-              ) : (
-                <div className="text-center py-20">
-                  <div className="w-32 h-32 bg-gradient-to-r from-slate-200 to-slate-300 rounded-full flex items-center justify-center mx-auto mb-8 shadow-2xl">
-                    <History className="w-16 h-16 text-slate-400" />
+                    ))}
                   </div>
-                  <h3 className="text-2xl font-black text-slate-900 mb-4 bg-gradient-to-r from-slate-900 to-slate-700 bg-clip-text text-transparent">
-                    No hay recibos generados
-                  </h3>
-                  <p className="text-slate-600 max-w-md mx-auto text-lg font-semibold">
-                    {filtroCliente ? 
-                      "No se encontraron recibos para el cliente seleccionado." : 
-                      "Los recibos que generes aparecerán en esta sección."
-                    }
+                ) : (
+                  <div className="text-center py-16">
+                    <History className="w-16 h-16 text-gray-300 mx-auto mb-4" />
+                    <h3 className="text-xl font-bold text-gray-900 mb-2">No hay recibos generados</h3>
+                    <p className="text-gray-600">
+                      {filtroCliente ? 
+                        "No se encontraron recibos para el cliente seleccionado." : 
+                        "Los recibos que generes aparecerán aquí."
+                      }
+                    </p>
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+        </div>
+      </main>
+
+      {/* MODAL DE VISTA PREVIA PARA IMPRIMIR */}
+      {showPrintModal && reciboParaImprimir && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4 print:bg-white">
+          <div className="bg-white rounded-xl shadow-2xl w-full max-w-4xl max-h-[90vh] overflow-y-auto print:shadow-none print:max-w-full print:max-h-full">
+            {/* Botones de acción - Solo visible en pantalla */}
+            <div className="flex justify-between items-center p-6 border-b border-gray-200 print:hidden">
+              <h3 className="text-xl font-bold text-gray-900">Vista Previa del Recibo</h3>
+              <div className="flex gap-3">
+                <button
+                  onClick={imprimirRecibo}
+                  className="px-4 py-2 bg-gradient-to-r from-green-500 to-emerald-600 text-white rounded-lg hover:shadow-lg transition-all font-medium flex items-center gap-2"
+                >
+                  <Printer className="w-4 h-4" />
+                  Imprimir
+                </button>
+                <button
+                  onClick={() => setShowPrintModal(false)}
+                  className="px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+            </div>
+
+            {/* Contenido del Recibo para Imprimir */}
+            <div className="p-8 print:p-12">
+              {/* Encabezado */}
+              <div className="text-center mb-8 border-b-2 border-gray-300 pb-6">
+                <h1 className="text-3xl font-bold text-gray-900 mb-2">RECIBO DE MÁQUINAS</h1>
+                <p className="text-lg text-gray-600">Sistema de Gestión PokerMGMT</p>
+                <p className="text-sm text-gray-500 mt-2">Recibo #{reciboParaImprimir.lote_recibo}</p>
+              </div>
+
+              {/* Información del Cliente y Fecha */}
+              <div className="grid grid-cols-2 gap-6 mb-8">
+                <div>
+                  <h3 className="text-sm font-semibold text-gray-600 mb-2">CLIENTE:</h3>
+                  <p className="text-xl font-bold text-gray-900">{reciboParaImprimir.cliente.nombre}</p>
+                  <p className="text-sm text-gray-600">ID Cliente: {reciboParaImprimir.cliente.id}</p>
+                </div>
+                <div className="text-right">
+                  <h3 className="text-sm font-semibold text-gray-600 mb-2">FECHA:</h3>
+                  <p className="text-xl font-bold text-gray-900">
+                    {new Date(reciboParaImprimir.fecha_recibo).toLocaleDateString('es-ES', {
+                      year: 'numeric',
+                      month: 'long',
+                      day: 'numeric'
+                    })}
                   </p>
                 </div>
-              )}
+              </div>
+
+              {/* Tabla de Máquinas */}
+              <div className="mb-8">
+                <h3 className="text-lg font-bold text-gray-900 mb-4">DETALLE DE MÁQUINAS</h3>
+                <table className="w-full border-collapse border border-gray-300">
+                  <thead className="bg-gray-100">
+                    <tr>
+                      <th className="border border-gray-300 px-4 py-3 text-left text-sm font-semibold">Código</th>
+                      <th className="border border-gray-300 px-4 py-3 text-left text-sm font-semibold">Nombre Máquina</th>
+                      <th className="border border-gray-300 px-4 py-3 text-right text-sm font-semibold">Ingresos (LPS)</th>
+                      <th className="border border-gray-300 px-4 py-3 text-right text-sm font-semibold">Gastos (LPS)</th>
+                      <th className="border border-gray-300 px-4 py-3 text-right text-sm font-semibold">Total (LPS)</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {reciboParaImprimir.maquinas.map((maquina, index) => (
+                      <tr key={maquina.id} className={index % 2 === 0 ? 'bg-white' : 'bg-gray-50'}>
+                        <td className="border border-gray-300 px-4 py-3 font-medium">{maquina.codigo}</td>
+                        <td className="border border-gray-300 px-4 py-3">{maquina.nombre}</td>
+                        <td className="border border-gray-300 px-4 py-3 text-right">{maquina.ingreso.toFixed(2)}</td>
+                        <td className="border border-gray-300 px-4 py-3 text-right">{maquina.egreso.toFixed(2)}</td>
+                        <td className="border border-gray-300 px-4 py-3 text-right font-bold">{maquina.total.toFixed(2)}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+
+              {/* Resumen Financiero */}
+              <div className="grid grid-cols-2 gap-8 mb-8">
+                <div className="space-y-3">
+                  <h3 className="text-lg font-bold text-gray-900 mb-4">RESUMEN TOTAL</h3>
+                  <div className="flex justify-between border-b border-gray-300 pb-2">
+                    <span className="text-gray-700">Total Ingresos:</span>
+                    <span className="font-bold">{reciboParaImprimir.total_ingresos.toFixed(2)} LPS</span>
+                  </div>
+                  <div className="flex justify-between border-b border-gray-300 pb-2">
+                    <span className="text-gray-700">Total Gastos:</span>
+                    <span className="font-bold">{reciboParaImprimir.total_egresos.toFixed(2)} LPS</span>
+                  </div>
+                  <div className="flex justify-between pt-2">
+                    <span className="text-lg font-bold">Total Neto:</span>
+                    <span className="text-lg font-bold text-green-600">{reciboParaImprimir.total_neto.toFixed(2)} LPS</span>
+                  </div>
+                </div>
+
+                <div className="space-y-3">
+                  <h3 className="text-lg font-bold text-gray-900 mb-4">DISTRIBUCIÓN</h3>
+                  <div className="flex justify-between border-b border-gray-300 pb-2">
+                    <span className="text-gray-700">Parte Propietario (60%):</span>
+                    <span className="font-bold">{reciboParaImprimir.parte_empresa.toFixed(2)} LPS</span>
+                  </div>
+                  <div className="flex justify-between pt-2">
+                    <span className="text-lg font-bold">Parte Cliente (40%):</span>
+                    <span className="text-lg font-bold text-blue-600">{reciboParaImprimir.parte_cliente.toFixed(2)} LPS</span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Pie del Recibo */}
+              <div className="border-t-2 border-gray-300 pt-6 mt-8">
+                <div className="grid grid-cols-2 gap-8 mb-6">
+                  <div>
+                    <p className="text-sm text-gray-600 mb-4">Firma del Cliente:</p>
+                    <div className="border-b-2 border-gray-300 w-full h-16"></div>
+                    <p className="text-xs text-gray-500 mt-2">{reciboParaImprimir.cliente.nombre}</p>
+                  </div>
+                  <div>
+                    <p className="text-sm text-gray-600 mb-4">Firma del Propietario:</p>
+                    <div className="border-b-2 border-gray-300 w-full h-16"></div>
+                    <p className="text-xs text-gray-500 mt-2">PokerMGMT</p>
+                  </div>
+                </div>
+                <p className="text-xs text-center text-gray-500 mt-6">
+                  Este documento es un recibo oficial generado por el Sistema de Gestión PokerMGMT
+                </p>
+                <p className="text-xs text-center text-gray-500">
+                  Fecha de emisión: {new Date().toLocaleString('es-ES')}
+                </p>
+              </div>
             </div>
           </div>
-        )}
-      </div>
+        </div>
+      )}
+
+      {/* Estilos para impresión */}
+      <style jsx global>{`
+        @media print {
+          @page {
+            size: A4;
+            margin: 1cm;
+          }
+          
+          body {
+            print-color-adjust: exact;
+            -webkit-print-color-adjust: exact;
+          }
+          
+          .print\\:hidden {
+            display: none !important;
+          }
+          
+          .print\\:bg-white {
+            background-color: white !important;
+          }
+          
+          .print\\:shadow-none {
+            box-shadow: none !important;
+          }
+          
+          .print\\:max-w-full {
+            max-width: 100% !important;
+          }
+          
+          .print\\:max-h-full {
+            max-height: 100% !important;
+          }
+          
+          .print\\:p-12 {
+            padding: 3rem !important;
+          }
+        }
+      `}</style>
     </div>
   );
 }
