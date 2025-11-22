@@ -15,8 +15,8 @@ export async function POST(req: NextRequest) {
 
     const resultado = await MaquinaClienteController.desasignar(body.maquina_id);
     return NextResponse.json(resultado, { status: 200 });
-  } catch (error: any) {
-    console.error("Error en designar máquina:", error.message);
-    return NextResponse.json({ error: error.message }, { status: 400 });
+  } catch (error: unknown) {
+    console.error("Error en designar máquina:", (error as Error).message);
+    return NextResponse.json({ error: (error as Error).message }, { status: 400 });
   }
 }

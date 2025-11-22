@@ -1,6 +1,7 @@
 // dtos/LoteReciboDTO.ts
 export interface LoteReciboDTO {
   id: number;
+  cliente_id: number;
   cliente: {
     id: number;
     nombre: string;

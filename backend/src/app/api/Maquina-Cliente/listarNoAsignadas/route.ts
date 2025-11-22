@@ -23,8 +23,8 @@ export async function GET() {
         : await maquinaRepo.find();
 
     return NextResponse.json(maquinas);
-  } catch (error: any) {
-    console.error("Error:", error);
-    return NextResponse.json({ error: error.message }, { status: 400 });
+  } catch (error: unknown) {
+    console.error("Error:", (error as Error).message);
+    return NextResponse.json({ error: (error as Error).message }, { status: 400 });
   }
 }

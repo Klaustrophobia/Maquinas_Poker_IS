@@ -23,7 +23,7 @@ export class ReciboService {
   private async inicializarUltimoLote() {
     // Buscar el lote más alto en la base de datos
     const recibos = await this.reciboRepository.obtenerTodosLosRecibos();
-    if (recibos.length > 0) {
+    if (recibos && recibos.length > 0) {
       const maxLote = Math.max(...recibos.map(r => Number(r.lote_recibo || 0)));
       this.ultimoLote = maxLote;
     } else {

@@ -16,8 +16,8 @@ export async function GET(req: NextRequest) {
     // Cambiado de listarPorCliente a listar
     const resultado = await MaquinaClienteController.listar(Number(clienteId));
     return NextResponse.json(resultado, { status: 200 });
-  } catch (error: any) {
-    console.error("Error en listar máquinas:", error.message);
-    return NextResponse.json({ error: error.message }, { status: 400 });
+  } catch (error: unknown) {
+    console.error("Error en listar máquinas:", (error as Error).message);
+    return NextResponse.json({ error: (error as Error).message }, { status: 400 });
   }
 }

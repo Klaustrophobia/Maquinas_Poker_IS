@@ -1,21 +1,5 @@
 import { AuthService } from "@/services/AuthService";
 
-interface LoginRequest {
-  correo: string;
-  contraseña: string;
-}
-
-interface VerificationRequest {
-  correo: string;
-  codigo: string;
-}
-
-interface RegisterRequest {
-  nombre_usuario: string;
-  correo: string;
-  contraseña: string;
-}
-
 export class AuthController {
   private service = new AuthService();
 

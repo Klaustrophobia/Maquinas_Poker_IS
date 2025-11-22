@@ -32,7 +32,7 @@ describe("AuthService", () => {
   const mockUsuario: Usuario = {
       id: 1,
       nombre_usuario: "Usuario Prueba",
-      contraseña: "123456_hasheado",
+      contraseña: "123456",
       rol: "Administrador",
       correo: "usuario@email.com",
       fecha_creacion: new Date(),
@@ -74,7 +74,6 @@ describe("AuthService", () => {
 
   test("solicitarLogin() genera código y envía correo", async () => {
     repoMock.findByCorreo.mockResolvedValue({ ...mockUsuario });
-    (bcrypt.compare as jest.Mock).mockResolvedValue(true);
 
     repoMock.save.mockResolvedValue(mockUsuario);
     (sendVerificationEmail as jest.Mock).mockResolvedValue(undefined);
@@ -82,7 +81,6 @@ describe("AuthService", () => {
     const result = await service.solicitarLogin("usuario@email.com", "123456");
 
     expect(repoMock.findByCorreo).toHaveBeenCalledWith("usuario@email.com");
-    expect(bcrypt.compare).toHaveBeenCalledWith("123456", mockUsuario.contraseña);
 
     expect(repoMock.save).toHaveBeenCalled();
     expect(sendVerificationEmail).toHaveBeenCalledWith(

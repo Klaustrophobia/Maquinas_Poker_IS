@@ -2,7 +2,24 @@
 import { LoteReciboRepository } from '@/repositories/LoteRecibo.repository';
 import { ReciboRepository } from '@/repositories/Recibo.repository';
 import { LoteReciboDTO, LoteReciboDetalleDTO } from '@/dtos/LoteReciboDTO';
-import { Recibo } from '@/entities/Recibo';
+
+// Entidad interna que representa la forma del lote devuelta por el repositorio
+type LoteEntity = {
+  id: number;
+  cliente_id: number;
+  cliente: {
+    id: number;
+    nombre_usuario: string;
+  };
+  fecha_recibo: Date;
+  ingreso: number | string;
+  egreso: number | string;
+  total: number | string;
+  parteEmpresa: number | string;
+  parteCliente: number | string;
+  cantidadRecibos: number;
+  fecha_creacion: Date;
+};
 
 export class LoteReciboService {
   private loteReciboRepository: LoteReciboRepository;
@@ -79,13 +96,14 @@ export class LoteReciboService {
     return await this.loteReciboRepository.eliminarLote(id);
   }
 
-  private mapearLotesADTO(lotes: any[]): LoteReciboDTO[] {
+  private mapearLotesADTO(lotes: LoteEntity[]): LoteReciboDTO[] {
     return lotes.map(lote => this.mapearLoteADTO(lote));
   }
 
-  private mapearLoteADTO(lote: any): LoteReciboDTO {
+  private mapearLoteADTO(lote: LoteEntity): LoteReciboDTO {
     return {
       id: lote.id,
+      cliente_id: lote.cliente_id,
       cliente: {
         id: lote.cliente.id,
         nombre: lote.cliente.nombre_usuario
