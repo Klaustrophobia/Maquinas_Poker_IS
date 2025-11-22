@@ -16,8 +16,8 @@ export async function POST(req: NextRequest) {
 
     const resultado = await MaquinaClienteController.asignar(body);
     return NextResponse.json(resultado, { status: 201 });
-  } catch (error: any) {
-    console.error("Error en asignar máquina:", error.message);
-    return NextResponse.json({ error: error.message }, { status: 400 });
+  } catch (error: unknown) {
+    console.error("Error en asignar máquina:", (error as Error).message);
+    return NextResponse.json({ error: (error as Error).message }, { status: 400 });
   }
 }

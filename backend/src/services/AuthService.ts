@@ -45,7 +45,6 @@ export class AuthService {
     if (!usuario) throw new Error("Credenciales incorrectas.");
     if (!usuario.activo) throw new Error("Cuenta desactivada.");
 
-    // ✅ COMPARACIÓN DIRECTA (sin bcrypt)
     if (usuario.contraseña !== contraseña) {
       throw new Error("Credenciales incorrectas.");
     }

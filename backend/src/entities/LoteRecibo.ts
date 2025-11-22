@@ -7,6 +7,9 @@ export class LoteRecibo {
   @PrimaryColumn({ type: 'bigint' })
   id!: number;
 
+  @Column({ type: 'bigint', name: 'cliente_id' })
+  cliente_id!: number;
+
   @ManyToOne(() => Usuario)
   @JoinColumn({ name: 'cliente_id' })
   cliente!: Usuario;

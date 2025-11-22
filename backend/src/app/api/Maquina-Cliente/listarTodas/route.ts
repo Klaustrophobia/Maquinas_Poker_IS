@@ -1,6 +1,5 @@
 import { NextResponse } from "next/server";
 import { AppDataSource } from "@/lib/db";
-import { Maquina } from "@/entities/Maquina";
 import { MaquinaCliente } from "@/entities/MaquinaCliente";
 
 export async function GET() {
@@ -14,7 +13,7 @@ export async function GET() {
     });
 
     return NextResponse.json(maquinas);
-  } catch (error: any) {
-    return NextResponse.json({ error: error.message }, { status: 400 });
+  } catch (error: unknown) {
+    return NextResponse.json({ error: (error as Error).message }, { status: 400 });
   }
 }
