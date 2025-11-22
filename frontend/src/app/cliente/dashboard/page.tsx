@@ -387,6 +387,11 @@ export default function ClienteDashboardPage() {
 
   // Estado para el filtro
   const [filtroBusqueda, setFiltroBusqueda] = useState("");
+  
+  // Estados para descarga de PDF
+  const [showPDFPreview, setShowPDFPreview] = useState(false);
+  const [reciboParaDescargar, setReciboParaDescargar] = useState<LoteRecibo | null>(null);
+  const [descargandoPDF, setDescargandoPDF] = useState(false);
 
   const { usuario, logout } = useAuth();
   const router = useRouter();
@@ -584,10 +589,88 @@ export default function ClienteDashboardPage() {
     }).format(monto);
   };
 
-  // Función para descargar recibo
-  const handleDescargarRecibo = (lote: LoteRecibo): void => {
-    console.log("Descargando recibo del lote:", lote.id);
-    alert(`Descargando recibo: LOTE-${lote.id}`);
+  // Función para abrir vista previa de descarga
+  const handleDescargarRecibo = async (lote: LoteRecibo): Promise<void> => {
+    setReciboParaDescargar(lote);
+    setShowPDFPreview(true);
+    
+    if (!lote.recibos) {
+      try {
+        const res = await fetch(`${backendUrl}/api/Lote-Recibo/${lote.id}`);
+        if (res.ok) {
+          const data = await res.json();
+          if (data.success && data.data) {
+            setReciboParaDescargar(data.data);
+          }
+        }
+      } catch (error) {
+        console.error('Error al cargar detalle del lote:', error);
+      }
+    }
+  };
+
+  // Función para cargar scripts de CDN
+  const loadScript = (src: string): Promise<void> => {
+    return new Promise((resolve, reject) => {
+      const script = document.createElement('script');
+      script.src = src;
+      script.onload = () => resolve();
+      script.onerror = () => reject(new Error(`Failed to load script: ${src}`));
+      document.head.appendChild(script);
+    });
+  };
+
+  // Función para descargar PDF
+  const descargarPDF = async (): Promise<void> => {
+    if (!reciboParaDescargar) return;
+    
+    setDescargandoPDF(true);
+    try {
+      await loadScript('https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js');
+      await loadScript('https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js');
+      
+      const element = document.getElementById('pdf-content');
+      if (!element) {
+        throw new Error('Elemento de contenido no encontrado');
+      }
+      
+      const canvas = await (window as any).html2canvas(element, {
+        scale: 2,
+        useCORS: true,
+        backgroundColor: '#ffffff',
+        allowTaint: true,
+        logging: false,
+        imageTimeout: 0
+      });
+      
+      const imgData = canvas.toDataURL('image/png');
+      const jsPDFModule = (window as any).jspdf;
+      const pdf = new jsPDFModule.jsPDF('p', 'mm', 'a4');
+      
+      const imgWidth = 210;
+      const pageHeight = 297;
+      const imgHeight = (canvas.height * imgWidth) / canvas.width;
+      let heightLeft = imgHeight;
+      let position = 0;
+      
+      pdf.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeight);
+      heightLeft -= pageHeight;
+      
+      while (heightLeft >= 0) {
+        position = heightLeft - imgHeight;
+        pdf.addPage();
+        pdf.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeight);
+        heightLeft -= pageHeight;
+      }
+      
+      pdf.save(`recibo-${reciboParaDescargar.id}.pdf`);
+      setShowPDFPreview(false);
+    } catch (error) {
+      console.error('Error al generar PDF:', error);
+      alert('Error al generar el PDF. Por favor intenta nuevamente.');
+    } finally {
+      setDescargandoPDF(false);
+    }
   };
 
   // ✅ FUNCIÓN MEJORADA: Abrir modal con detalle del lote
@@ -1065,6 +1148,127 @@ export default function ClienteDashboardPage() {
         formatFecha={formatFecha}
         formatMoneda={formatMoneda}
       />
+
+      {/* MODAL DE VISTA PREVIA PARA DESCARGAR PDF */}
+      {showPDFPreview && reciboParaDescargar && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-4xl max-h-[90vh] overflow-y-auto">
+            {/* Botones de acción */}
+            <div className="flex justify-between items-center p-6 border-b border-gray-200 sticky top-0 bg-white">
+              <h3 className="text-xl font-bold text-gray-900">Vista Previa del Recibo</h3>
+              <div className="flex gap-3">
+                <button
+                  onClick={descargarPDF}
+                  disabled={descargandoPDF}
+                  className="px-4 py-2 bg-gradient-to-r from-green-500 to-emerald-600 text-white rounded-lg hover:shadow-lg transition-all font-bold flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  <Download className="w-4 h-4" />
+                  {descargandoPDF ? "Descargando..." : "Descargar PDF"}
+                </button>
+                <button
+                  onClick={() => setShowPDFPreview(false)}
+                  className="px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+            </div>
+
+            {/* Contenido del Recibo */}
+            <div id="pdf-content" className="p-8">
+              {/* Encabezado */}
+              <div className="text-center mb-8 border-b-2 border-gray-300 pb-6">
+                <h1 className="text-3xl font-bold text-gray-900 mb-2">RECIBO DE MÁQUINAS</h1>
+                <p className="text-lg text-gray-600">Sistema de Gestión PokerMGMT</p>
+                <p className="text-sm text-gray-500 mt-2">Recibo #{reciboParaDescargar.id}</p>
+              </div>
+
+              {/* Información del Cliente y Fecha */}
+              <div className="grid grid-cols-2 gap-6 mb-8">
+                <div>
+                  <h3 className="text-sm font-semibold text-gray-600 mb-2">CLIENTE:</h3>
+                  <p className="text-xl font-bold text-gray-900">{reciboParaDescargar.cliente?.nombre_usuario || "N/A"}</p>
+                  <p className="text-sm text-gray-600">ID Cliente: {reciboParaDescargar.cliente_id}</p>
+                </div>
+                <div className="text-right">
+                  <h3 className="text-sm font-semibold text-gray-600 mb-2">FECHA:</h3>
+                  <p className="text-xl font-bold text-gray-900">
+                    {formatFecha(reciboParaDescargar.fecha_recibo)}
+                  </p>
+                </div>
+              </div>
+
+              {/* Tabla de Máquinas */}
+              {reciboParaDescargar.recibos && reciboParaDescargar.recibos.length > 0 && (
+                <div className="mb-8">
+                  <h3 className="text-lg font-bold text-gray-900 mb-4">DETALLE DE MÁQUINAS</h3>
+                  <table className="w-full border-collapse border border-gray-300">
+                    <thead className="bg-gray-100">
+                      <tr>
+                        <th className="border border-gray-300 px-4 py-3 text-left text-sm font-semibold">Máquina</th>
+                        <th className="border border-gray-300 px-4 py-3 text-right text-sm font-semibold">Ingresos (HNL)</th>
+                        <th className="border border-gray-300 px-4 py-3 text-right text-sm font-semibold">Gastos (HNL)</th>
+                        <th className="border border-gray-300 px-4 py-3 text-right text-sm font-semibold">Total (HNL)</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {reciboParaDescargar.recibos.map((recibo, index) => (
+                        <tr key={recibo.id} className={index % 2 === 0 ? 'bg-white' : 'bg-gray-50'}>
+                          <td className="border border-gray-300 px-4 py-3 font-medium">{recibo.maquina.nombre}</td>
+                          <td className="border border-gray-300 px-4 py-3 text-right">{recibo.ingreso.toFixed(2)}</td>
+                          <td className="border border-gray-300 px-4 py-3 text-right">{recibo.egreso.toFixed(2)}</td>
+                          <td className="border border-gray-300 px-4 py-3 text-right font-bold">{recibo.total.toFixed(2)}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+
+              {/* Resumen Financiero */}
+              <div className="grid grid-cols-2 gap-8 mb-8">
+                <div className="space-y-3">
+                  <h3 className="text-lg font-bold text-gray-900 mb-4">RESUMEN TOTAL</h3>
+                  <div className="flex justify-between border-b border-gray-300 pb-2">
+                    <span className="text-gray-700">Total Ingresos:</span>
+                    <span className="font-bold">{formatMoneda(reciboParaDescargar.ingreso)}</span>
+                  </div>
+                  <div className="flex justify-between border-b border-gray-300 pb-2">
+                    <span className="text-gray-700">Total Gastos:</span>
+                    <span className="font-bold">{formatMoneda(reciboParaDescargar.egreso)}</span>
+                  </div>
+                  <div className="flex justify-between pt-2">
+                    <span className="text-lg font-bold">Total Neto:</span>
+                    <span className="text-lg font-bold text-green-600">{formatMoneda(reciboParaDescargar.total)}</span>
+                  </div>
+                </div>
+
+                <div className="space-y-3">
+                  <h3 className="text-lg font-bold text-gray-900 mb-4">DISTRIBUCIÓN</h3>
+                  <div className="flex justify-between border-b border-gray-300 pb-2">
+                    <span className="text-gray-700">Parte Empresa (60%):</span>
+                    <span className="font-bold">{formatMoneda(reciboParaDescargar.parte_empresa)}</span>
+                  </div>
+                  <div className="flex justify-between pt-2">
+                    <span className="text-lg font-bold">Parte Cliente (40%):</span>
+                    <span className="text-lg font-bold text-blue-600">{formatMoneda(reciboParaDescargar.parte_cliente)}</span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Pie del Recibo */}
+              <div className="border-t-2 border-gray-300 pt-6 mt-8">
+                <p className="text-xs text-center text-gray-500 mt-6">
+                  Este documento es un recibo oficial generado por el Sistema de Gestión PokerMGMT
+                </p>
+                <p className="text-xs text-center text-gray-500">
+                  Fecha de emisión: {new Date().toLocaleString('es-ES')}
+                </p>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </>
   );
 }
