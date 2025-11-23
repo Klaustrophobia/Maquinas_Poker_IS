@@ -290,8 +290,199 @@ export default function ContabilidadPage() {
   };
 
   const imprimirRecibo = () => {
+  const contenidoImprimir = document.getElementById('contenido-imprimir');
+  
+  if (contenidoImprimir && reciboParaImprimir) {
+    const ventanaImpresion = window.open('', '_blank');
+    
+    // Verificar si la ventana se abrió correctamente
+    if (!ventanaImpresion) {
+      alert('Por favor permite las ventanas emergentes para imprimir el recibo');
+      return;
+    }
+    
+    ventanaImpresion.document.write(`
+      <!DOCTYPE html>
+      <html>
+        <head>
+          <title>Recibo #${reciboParaImprimir.lote_recibo}</title>
+          <style>
+            @page {
+              size: A4;
+              margin: 1cm;
+            }
+            body {
+              font-family: Arial, sans-serif;
+              color: black;
+              font-weight: bold;
+              background: white;
+              margin: 0;
+              padding: 15px;
+              -webkit-print-color-adjust: exact !important;
+              print-color-adjust: exact !important;
+              color-adjust: exact !important;
+            }
+            table {
+              width: 100%;
+              border-collapse: collapse;
+              margin: 15px 0;
+            }
+            th, td {
+              border: 1px solid black;
+              padding: 6px 10px;
+              text-align: left;
+            }
+            th {
+              background-color: #f0f0f0 !important;
+              font-weight: bold;
+            }
+            .text-center { text-align: center; }
+            .text-right { text-align: right; }
+            .text-left { text-align: left; }
+            .font-bold { font-weight: bold; }
+            .border-b-2 { border-bottom: 2px solid black; }
+            .border-t-2 { border-top: 2px solid black; }
+            .border-t-4 { border-top: 4px solid black; }
+            .mb-2 { margin-bottom: 0.5rem; }
+            .mb-3 { margin-bottom: 0.75rem; }
+            .mb-4 { margin-bottom: 1rem; }
+            .mb-6 { margin-bottom: 1.5rem; }
+            .mt-2 { margin-top: 0.5rem; }
+            .mt-4 { margin-top: 1rem; }
+            .mt-6 { margin-top: 1.5rem; }
+            .pb-2 { padding-bottom: 0.5rem; }
+            .pb-4 { padding-bottom: 1rem; }
+            .pt-2 { padding-top: 0.5rem; }
+            .pt-4 { padding-top: 1rem; }
+            .px-4 { padding-left: 1rem; padding-right: 1rem; }
+            .py-2 { padding-top: 0.5rem; padding-bottom: 0.5rem; }
+            .py-3 { padding-top: 0.75rem; padding-bottom: 0.75rem; }
+            .grid { display: grid; }
+            .grid-cols-2 { grid-template-columns: 1fr 1fr; }
+            .gap-6 { gap: 1.5rem; }
+            .gap-8 { gap: 2rem; }
+            .space-y-2 > * + * { margin-top: 0.5rem; }
+            .space-y-3 > * + * { margin-top: 0.75rem; }
+            
+            /* Colores para impresión */
+            .bg-gray-100 { background-color: #f7fafc !important; }
+            .bg-gray-200 { background-color: #edf2f7 !important; }
+            .text-red-600 { color: #dc2626 !important; }
+            .text-green-600 { color: #16a34a !important; }
+            .text-blue-600 { color: #2563eb !important; }
+            .text-purple-600 { color: #9333ea !important; }
+            .bg-blue-50 { background-color: #dbeafe !important; }
+            .bg-red-50 { background-color: #fee2e2 !important; }
+            .bg-green-50 { background-color: #dcfce7 !important; }
+            .bg-purple-50 { background-color: #f3e8ff !important; }
+            
+            /* Estilos específicos para el recibo compacto */
+            .encabezado-recibo {
+              text-align: center;
+              margin-bottom: 1rem !important;
+              padding-bottom: 0.5rem !important;
+            }
+            .titulo-principal {
+              font-size: 24px;
+              margin-bottom: 0.25rem !important;
+            }
+            .subtitulo {
+              font-size: 16px;
+              margin-bottom: 0.25rem !important;
+            }
+            .numero-recibo {
+              font-size: 14px;
+              margin-top: 0.25rem !important;
+            }
+            .seccion {
+              margin-bottom: 1rem !important;
+            }
+            .firmas {
+              margin-top: 1.5rem !important;
+            }
+            
+            /* Ocultar elementos del navegador en impresión */
+            @media print {
+              @page {
+                margin: 0.5cm;
+              }
+              body {
+                margin: 0.5cm;
+                -webkit-print-color-adjust: exact !important;
+                print-color-adjust: exact !important;
+                color-adjust: exact !important;
+                padding: 10px;
+              }
+              /* Forzar colores en impresión */
+              * {
+                -webkit-print-color-adjust: exact !important;
+                print-color-adjust: exact !important;
+                color-adjust: exact !important;
+              }
+            }
+          </style>
+        </head>
+        <body>
+          ${contenidoImprimir.innerHTML}
+          <script>
+            // Configurar antes de imprimir
+            function configurarImpresion() {
+              // Ocultar elementos del navegador
+              document.title = "Recibo #${reciboParaImprimir.lote_recibo}";
+              
+              // Configurar para imprimir a color
+              const style = document.createElement('style');
+              style.innerHTML = \`
+                @media print {
+                  * {
+                    -webkit-print-color-adjust: exact !important;
+                    print-color-adjust: exact !important;
+                    color-adjust: exact !important;
+                  }
+                }
+              \`;
+              document.head.appendChild(style);
+              
+              // Configurar eventos de impresión
+              window.onafterprint = function() {
+                setTimeout(function() {
+                  window.close();
+                }, 500);
+              };
+              
+              // Imprimir inmediatamente
+              setTimeout(function() {
+                window.print();
+              }, 500);
+            }
+            
+            // Ejecutar cuando la ventana esté lista
+            if (document.readyState === 'loading') {
+              document.addEventListener('DOMContentLoaded', configurarImpresion);
+            } else {
+              configurarImpresion();
+            }
+          </script>
+        </body>
+      </html>
+    `);
+    ventanaImpresion.document.close();
+  } else {
+    // Fallback: imprimir normalmente con ajustes de color
+    const style = document.createElement('style');
+    style.innerHTML = `
+      @media print {
+        * {
+          -webkit-print-color-adjust: exact !important;
+          print-color-adjust: exact !important;
+          color-adjust: exact !important;
+        }
+      }
+    `;
+    document.head.appendChild(style);
     window.print();
-  };
+  }
+};
 
   const handleLogout = () => {
     logout();
@@ -451,21 +642,6 @@ export default function ContabilidadPage() {
                         ))}
                       </select>
                     </div>
-
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">
-                        Fecha del Recibo
-                      </label>
-                      <div className="relative">
-                        <input
-                          type="date"
-                          value={fechaActual}
-                          onChange={(e) => setFechaActual(e.target.value)}
-                          className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-gray-700"
-                        />
-                        <Calendar className="w-5 h-5 text-gray-400 absolute right-3 top-1/2 transform -translate-y-1/2 pointer-events-none" />
-                      </div>
-                    </div>
                   </div>
                 </div>
 
@@ -494,53 +670,58 @@ export default function ContabilidadPage() {
                           <tr>
                             <th className="px-4 py-3 text-left text-sm font-semibold text-gray-700">ID Máquina</th>
                             <th className="px-4 py-3 text-left text-sm font-semibold text-gray-700">Ingresos (LPS)</th>
-                            <th className="px-4 py-3 text-left text-sm font-semibold text-gray-700">Gastos (LPS)</th>
+                            <th className="px-4 py-3 text-left text-sm font-semibold text-gray-700">Egresos (LPS)</th>
                             <th className="px-4 py-3 text-left text-sm font-semibold text-gray-700">Total (LPS)</th>
                           </tr>
                         </thead>
                         <tbody className="divide-y divide-gray-200">
-                          {maquinasRecibo.map((maquina) => (
-                            <tr key={maquina.maquina_id} className="hover:bg-gray-50">
-                              <td className="px-4 py-4">
-                                <div className="flex items-center gap-3">
-                                  <div className="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center">
-                                    <Wrench className="w-5 h-5 text-blue-600" />
+                          {maquinasRecibo.map((maquina) => {
+                            const total = parseFloat(maquina.total || '0');
+                            const esNegativo = total < 0;
+                            
+                            return (
+                              <tr key={maquina.maquina_id} className="hover:bg-gray-50">
+                                <td className="px-4 py-4">
+                                  <div className="flex items-center gap-3">
+                                    <div className="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center">
+                                      <Wrench className="w-5 h-5 text-blue-600" />
+                                    </div>
+                                    <div>
+                                      <p className="font-medium text-gray-900">{maquina.codigo}</p>
+                                      <p className="text-xs text-gray-500">{maquina.nombre}</p>
+                                    </div>
                                   </div>
-                                  <div>
-                                    <p className="font-medium text-gray-900">{maquina.codigo}</p>
-                                    <p className="text-xs text-gray-500">{maquina.nombre}</p>
-                                  </div>
-                                </div>
-                              </td>
-                              <td className="px-4 py-4">
-                                <input
-                                  type="number"
-                                  step="0.01"
-                                  min="0"
-                                  value={maquina.ingreso}
-                                  onChange={(e) => actualizarValorMaquina(maquina.maquina_id, 'ingreso', e.target.value)}
-                                  className="w-32 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 text-gray-700"
-                                  placeholder="0.00"
-                                />
-                              </td>
-                              <td className="px-4 py-4">
-                                <input
-                                  type="number"
-                                  step="0.01"
-                                  min="0"
-                                  value={maquina.egreso}
-                                  onChange={(e) => actualizarValorMaquina(maquina.maquina_id, 'egreso', e.target.value)}
-                                  className="w-32 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 text-gray-700"
-                                  placeholder="0.00"
-                                />
-                              </td>
-                              <td className="px-4 py-4">
-                                <span className="font-semibold text-gray-900">
-                                  {parseFloat(maquina.total || '0').toFixed(2)} LPS
-                                </span>
-                              </td>
-                            </tr>
-                          ))}
+                                </td>
+                                <td className="px-4 py-4">
+                                  <input
+                                    type="number"
+                                    step="0.01"
+                                    min="0"
+                                    value={maquina.ingreso}
+                                    onChange={(e) => actualizarValorMaquina(maquina.maquina_id, 'ingreso', e.target.value)}
+                                    className="w-32 px-3 py-2 border-2 border-green-500 rounded-lg focus:ring-2 focus:ring-green-500 text-gray-700"
+                                    placeholder="0.00"
+                                  />
+                                </td>
+                                <td className="px-4 py-4">
+                                  <input
+                                    type="number"
+                                    step="0.01"
+                                    min="0"
+                                    value={maquina.egreso}
+                                    onChange={(e) => actualizarValorMaquina(maquina.maquina_id, 'egreso', e.target.value)}
+                                    className="w-32 px-3 py-2 border-2 border-red-500 rounded-lg focus:ring-2 focus:ring-red-500 text-gray-700"
+                                    placeholder="0.00"
+                                  />
+                                </td>
+                                <td className="px-4 py-4">
+                                  <span className={`font-semibold ${esNegativo ? 'text-red-600' : 'text-gray-900'}`}>
+                                    {total.toFixed(2)} LPS
+                                  </span>
+                                </td>
+                              </tr>
+                            );
+                          })}
                         </tbody>
                       </table>
                     </div>
@@ -562,7 +743,7 @@ export default function ContabilidadPage() {
                         </span>
                       </div>
                       <div className="flex justify-between items-center">
-                        <span className="text-gray-600">Total Gastos</span>
+                        <span className="text-gray-600">Total Egresos</span>
                         <span className="text-lg font-semibold text-gray-900">
                           {parseFloat(totales.totalEgresos).toFixed(2)} LPS
                         </span>
@@ -661,7 +842,7 @@ export default function ContabilidadPage() {
                   <div className="space-y-6">
                     {recibosFiltrados.map((recibo) => (
                       <div 
-                        key={recibo.lote_recibo} 
+                        key={recibo.id}
                         className="border border-gray-200 rounded-xl p-6 hover:shadow-md transition-all"
                       >
                         {/* Header del Recibo */}
@@ -741,7 +922,7 @@ export default function ContabilidadPage() {
                             </p>
                           </div>
                           <div className="text-center p-3 bg-red-50 rounded-lg">
-                            <p className="text-xs text-red-600 font-medium">Total Gastos</p>
+                            <p className="text-xs text-red-600 font-medium">Total Egresos</p>
                             <p className="text-lg font-bold text-red-700">
                               {recibo.total_egresos.toFixed(2)} LPS
                             </p>
@@ -782,10 +963,10 @@ export default function ContabilidadPage() {
 
       {/* MODAL DE VISTA PREVIA PARA IMPRIMIR */}
       {showPrintModal && reciboParaImprimir && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4 print:bg-white">
-          <div className="bg-white rounded-xl shadow-2xl w-full max-w-4xl max-h-[90vh] overflow-y-auto print:shadow-none print:max-w-full print:max-h-full">
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4 print:hidden">
+          <div className="bg-white rounded-xl shadow-2xl w-full max-w-4xl max-h-[90vh] overflow-y-auto">
             {/* Botones de acción - Solo visible en pantalla */}
-            <div className="flex justify-between items-center p-6 border-b border-gray-200 print:hidden">
+            <div className="flex justify-between items-center p-6 border-b border-gray-200">
               <h3 className="text-xl font-bold text-gray-900">Vista Previa del Recibo</h3>
               <div className="flex gap-3">
                 <button
@@ -804,156 +985,119 @@ export default function ContabilidadPage() {
               </div>
             </div>
 
-            {/* Contenido del Recibo para Imprimir */}
-            <div className="p-8 print:p-12">
-              {/* Encabezado */}
-              <div className="text-center mb-8 border-b-2 border-gray-300 pb-6">
-                <h1 className="text-3xl font-bold text-gray-900 mb-2">RECIBO DE MÁQUINAS</h1>
-                <p className="text-lg text-gray-600">Sistema de Gestión PokerMGMT</p>
-                <p className="text-sm text-gray-500 mt-2">Recibo #{reciboParaImprimir.lote_recibo}</p>
-              </div>
+            {/* Contenido del Recibo para Imprimir - ESTE ES EL QUE SE IMPRIME */}
+<div id="contenido-imprimir" className="p-4 bg-white">
+  {/* Encabezado Compacto */}
+  <div className="encabezado-recibo border-b-2 border-black">
+    <h1 className="titulo-principal font-bold text-black">RECIBO DE MÁQUINAS</h1>
+    <p className="subtitulo font-bold text-black">Sistema de Gestión PokerMGMT</p>
+    <p className="numero-recibo font-bold text-black">Recibo #{reciboParaImprimir.lote_recibo}</p>
+  </div>
 
-              {/* Información del Cliente y Fecha */}
-              <div className="grid grid-cols-2 gap-6 mb-8">
-                <div>
-                  <h3 className="text-sm font-semibold text-gray-600 mb-2">CLIENTE:</h3>
-                  <p className="text-xl font-bold text-gray-900">{reciboParaImprimir.cliente.nombre}</p>
-                  <p className="text-sm text-gray-600">ID Cliente: {reciboParaImprimir.cliente.id}</p>
-                </div>
-                <div className="text-right">
-                  <h3 className="text-sm font-semibold text-gray-600 mb-2">FECHA:</h3>
-                  <p className="text-xl font-bold text-gray-900">
-                    {new Date(reciboParaImprimir.fecha_recibo).toLocaleDateString('es-ES', {
-                      year: 'numeric',
-                      month: 'long',
-                      day: 'numeric'
-                    })}
-                  </p>
-                </div>
-              </div>
+  {/* Información del Cliente y Fecha */}
+  <div className="grid grid-cols-2 gap-6 mb-4 seccion">
+    <div>
+      <h3 className="text-sm font-semibold text-black mb-1 font-bold">CLIENTE:</h3>
+      <p className="text-lg font-bold text-black">{reciboParaImprimir.cliente.nombre}</p>
+    </div>
+    <div className="text-right">
+      <h3 className="text-sm font-semibold text-black mb-1 font-bold">FECHA:</h3>
+      <p className="text-lg font-bold text-black">
+        {new Date(reciboParaImprimir.fecha_recibo).toLocaleDateString('es-ES', {
+          year: 'numeric',
+          month: 'long',
+          day: 'numeric'
+        })}
+      </p>
+    </div>
+  </div>
 
-              {/* Tabla de Máquinas */}
-              <div className="mb-8">
-                <h3 className="text-lg font-bold text-gray-900 mb-4">DETALLE DE MÁQUINAS</h3>
-                <table className="w-full border-collapse border border-gray-300">
-                  <thead className="bg-gray-100">
-                    <tr>
-                      <th className="border border-gray-300 px-4 py-3 text-left text-sm font-semibold">Código</th>
-                      <th className="border border-gray-300 px-4 py-3 text-left text-sm font-semibold">Nombre Máquina</th>
-                      <th className="border border-gray-300 px-4 py-3 text-right text-sm font-semibold">Ingresos (LPS)</th>
-                      <th className="border border-gray-300 px-4 py-3 text-right text-sm font-semibold">Gastos (LPS)</th>
-                      <th className="border border-gray-300 px-4 py-3 text-right text-sm font-semibold">Total (LPS)</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {reciboParaImprimir.maquinas.map((maquina, index) => (
-                      <tr key={maquina.id} className={index % 2 === 0 ? 'bg-white' : 'bg-gray-50'}>
-                        <td className="border border-gray-300 px-4 py-3 font-medium">{maquina.codigo}</td>
-                        <td className="border border-gray-300 px-4 py-3">{maquina.nombre}</td>
-                        <td className="border border-gray-300 px-4 py-3 text-right">{maquina.ingreso.toFixed(2)}</td>
-                        <td className="border border-gray-300 px-4 py-3 text-right">{maquina.egreso.toFixed(2)}</td>
-                        <td className="border border-gray-300 px-4 py-3 text-right font-bold">{maquina.total.toFixed(2)}</td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
+  {/* Tabla de Máquinas */}
+  <div className="mb-4 seccion">
+    <h3 className="text-md font-bold text-black mb-2">DETALLE DE MÁQUINAS</h3>
+    <table className="w-full border-collapse border-2 border-black">
+      <thead className="bg-gray-200">
+        <tr>
+          <th className="border-2 border-black px-3 py-2 text-left text-sm font-bold text-black">Código</th>
+          <th className="border-2 border-black px-3 py-2 text-left text-sm font-bold text-black">Nombre Máquina</th>
+          <th className="border-2 border-black px-3 py-2 text-right text-sm font-bold text-black">Ingresos (LPS)</th>
+          <th className="border-2 border-black px-3 py-2 text-right text-sm font-bold text-black">Gastos (LPS)</th>
+          <th className="border-2 border-black px-3 py-2 text-right text-sm font-bold text-black">Total (LPS)</th>
+        </tr>
+      </thead>
+      <tbody>
+        {reciboParaImprimir.maquinas.map((maquina, index) => {
+          const esNegativo = maquina.total < 0;
+          return (
+            <tr key={maquina.id} className={index % 2 === 0 ? 'bg-white' : 'bg-gray-100'}>
+              <td className="border border-black px-3 py-2 font-bold text-black">{maquina.codigo}</td>
+              <td className="border border-black px-3 py-2 font-bold text-black">{maquina.nombre}</td>
+              <td className="border border-black px-3 py-2 text-right font-bold text-black">{maquina.ingreso.toFixed(2)}</td>
+              <td className="border border-black px-3 py-2 text-right font-bold text-black">{maquina.egreso.toFixed(2)}</td>
+              <td className={`border border-black px-3 py-2 text-right font-bold ${esNegativo ? 'text-red-600' : 'text-black'}`}>
+                {maquina.total.toFixed(2)}
+              </td>
+            </tr>
+          );
+        })}
+      </tbody>
+    </table>
+  </div>
 
-              {/* Resumen Financiero */}
-              <div className="grid grid-cols-2 gap-8 mb-8">
-                <div className="space-y-3">
-                  <h3 className="text-lg font-bold text-gray-900 mb-4">RESUMEN TOTAL</h3>
-                  <div className="flex justify-between border-b border-gray-300 pb-2">
-                    <span className="text-gray-700">Total Ingresos:</span>
-                    <span className="font-bold">{reciboParaImprimir.total_ingresos.toFixed(2)} LPS</span>
-                  </div>
-                  <div className="flex justify-between border-b border-gray-300 pb-2">
-                    <span className="text-gray-700">Total Gastos:</span>
-                    <span className="font-bold">{reciboParaImprimir.total_egresos.toFixed(2)} LPS</span>
-                  </div>
-                  <div className="flex justify-between pt-2">
-                    <span className="text-lg font-bold">Total Neto:</span>
-                    <span className="text-lg font-bold text-green-600">{reciboParaImprimir.total_neto.toFixed(2)} LPS</span>
-                  </div>
-                </div>
+  {/* Resumen Financiero */}
+  <div className="grid grid-cols-2 gap-6 mb-4 seccion">
+    <div className="space-y-2">
+      <h3 className="text-md font-bold text-black mb-2">RESUMEN TOTAL</h3>
+      <div className="flex justify-between border-b border-black pb-1">
+        <span className="text-black font-bold text-sm">Total Ingresos:</span>
+        <span className="font-bold text-black text-sm">{reciboParaImprimir.total_ingresos.toFixed(2)} LPS</span>
+      </div>
+      <div className="flex justify-between border-b border-black pb-1">
+        <span className="text-black font-bold text-sm">Total Gastos:</span>
+        <span className="font-bold text-black text-sm">{reciboParaImprimir.total_egresos.toFixed(2)} LPS</span>
+      </div>
+      <div className="flex justify-between pt-1">
+        <span className="text-md font-bold text-black">Total Neto:</span>
+        <span className="text-md font-bold text-black">{reciboParaImprimir.total_neto.toFixed(2)} LPS</span>
+      </div>
+    </div>
 
-                <div className="space-y-3">
-                  <h3 className="text-lg font-bold text-gray-900 mb-4">DISTRIBUCIÓN</h3>
-                  <div className="flex justify-between border-b border-gray-300 pb-2">
-                    <span className="text-gray-700">Parte Propietario (60%):</span>
-                    <span className="font-bold">{reciboParaImprimir.parte_empresa.toFixed(2)} LPS</span>
-                  </div>
-                  <div className="flex justify-between pt-2">
-                    <span className="text-lg font-bold">Parte Cliente (40%):</span>
-                    <span className="text-lg font-bold text-blue-600">{reciboParaImprimir.parte_cliente.toFixed(2)} LPS</span>
-                  </div>
-                </div>
-              </div>
+    <div className="space-y-2">
+      <h3 className="text-md font-bold text-black mb-2">DISTRIBUCIÓN</h3>
+      <div className="flex justify-between border-b border-black pb-1">
+        <span className="text-black font-bold text-sm">Parte Propietario (60%):</span>
+        <span className="font-bold text-black text-sm">{reciboParaImprimir.parte_empresa.toFixed(2)} LPS</span>
+      </div>
+      <div className="flex justify-between pt-1">
+        <span className="text-md font-bold text-black">Parte Cliente (40%):</span>
+        <span className="text-md font-bold text-black">{reciboParaImprimir.parte_cliente.toFixed(2)} LPS</span>
+      </div>
+    </div>
+  </div>
 
-              {/* Pie del Recibo */}
-              <div className="border-t-2 border-gray-300 pt-6 mt-8">
-                <div className="grid grid-cols-2 gap-8 mb-6">
-                  <div>
-                    <p className="text-sm text-gray-600 mb-4">Firma del Cliente:</p>
-                    <div className="border-b-2 border-gray-300 w-full h-16"></div>
-                    <p className="text-xs text-gray-500 mt-2">{reciboParaImprimir.cliente.nombre}</p>
-                  </div>
-                  <div>
-                    <p className="text-sm text-gray-600 mb-4">Firma del Propietario:</p>
-                    <div className="border-b-2 border-gray-300 w-full h-16"></div>
-                    <p className="text-xs text-gray-500 mt-2">PokerMGMT</p>
-                  </div>
-                </div>
-                <p className="text-xs text-center text-gray-500 mt-6">
-                  Este documento es un recibo oficial generado por el Sistema de Gestión PokerMGMT
-                </p>
-                <p className="text-xs text-center text-gray-500">
-                  Fecha de emisión: {new Date().toLocaleString('es-ES')}
-                </p>
-              </div>
-            </div>
+  {/* Pie del Recibo */}
+  <div className="border-t-2 border-black pt-4 mt-4 firmas">
+    <div className="grid grid-cols-2 gap-6 mb-4">
+      <div>
+        <p className="text-sm text-black mb-2 font-bold">Firma del Cliente:</p>
+        <div className="border-b border-black w-full h-12 mb-1"></div>
+      </div>
+      <div>
+        <p className="text-sm text-black mb-2 font-bold">Firma del Propietario:</p>
+        <div className="border-b border-black w-full h-12 mb-1"></div>
+      </div>
+    </div>
+    <p className="text-xs text-center text-black mt-4 font-bold">
+      Este documento es un recibo oficial generado por el Sistema de Gestión PokerMGMT
+    </p>
+    <p className="text-xs text-center text-black font-bold">
+      Fecha de emisión: {new Date().toLocaleString('es-ES')}
+    </p>
+  </div>
+</div>
           </div>
         </div>
       )}
-
-      {/* Estilos para impresión */}
-      <style jsx global>{`
-        @media print {
-          @page {
-            size: A4;
-            margin: 1cm;
-          }
-          
-          body {
-            print-color-adjust: exact;
-            -webkit-print-color-adjust: exact;
-          }
-          
-          .print\\:hidden {
-            display: none !important;
-          }
-          
-          .print\\:bg-white {
-            background-color: white !important;
-          }
-          
-          .print\\:shadow-none {
-            box-shadow: none !important;
-          }
-          
-          .print\\:max-w-full {
-            max-width: 100% !important;
-          }
-          
-          .print\\:max-h-full {
-            max-height: 100% !important;
-          }
-          
-          .print\\:p-12 {
-            padding: 3rem !important;
-          }
-        }
-      `}</style>
     </div>
   );
 }

@@ -1,10 +1,10 @@
 "use client";
 import React, { useState, useEffect } from "react";
-import { Menu, X, Home, Wrench, FileText, LogOut, Plus, Eye, Search, Download, Calendar, User, DollarSign, Package, Clock, Building, Users, Filter, Mail, Printer } from "lucide-react";
+import { Menu, X, Home, Wrench, FileText, LogOut, Plus, Eye, Search, Calendar, User, DollarSign, Package, Filter, Mail, Printer } from "lucide-react";
 import { useAuth } from "@/app/context/AuthContext";
 import { useRouter } from "next/navigation";
 
-// ... (mantener todas las interfaces igual que en el código original)
+// Interfaces
 interface Maquina {
   id: number;
   nombre: string;
@@ -73,7 +73,7 @@ interface UsuarioCompleto {
   rol: string;
 }
 
-// Modal de Detalle (mantener igual)
+// Modal de Detalle
 const ModalDetalleLote: React.FC<{
   lote: LoteRecibo | null;
   isOpen: boolean;
@@ -288,7 +288,6 @@ const ModalDetalleLote: React.FC<{
 };
 
 export default function ClienteDashboardPage() {
-  // ... (mantener todos los estados originales)
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [activeSection, setActiveSection] = useState("dashboard");
   const [stats, setStats] = useState<Stats>({
@@ -309,7 +308,7 @@ export default function ClienteDashboardPage() {
   const [cargandoDetalle, setCargandoDetalle] = useState(false);
   const [filtroBusqueda, setFiltroBusqueda] = useState("");
   
-  // Estados para PDF/Descarga eliminados, ahora usamos para imprimir
+  // Estados para imprimir
   const [showPrintModal, setShowPrintModal] = useState(false);
   const [reciboParaImprimir, setReciboParaImprimir] = useState<LoteRecibo | null>(null);
 
@@ -324,7 +323,6 @@ export default function ClienteDashboardPage() {
     { id: "recibos", label: "Recibos", icon: FileText },
   ];
 
-  // ... (mantener todos los useEffect y funciones fetch originales)
   useEffect(() => {
     if (!usuario) {
       router.push("/login");
@@ -451,7 +449,7 @@ export default function ClienteDashboardPage() {
     }).format(monto);
   };
 
-  // ✅ NUEVA FUNCIÓN: Abrir modal de impresión
+  // Función para abrir modal de impresión
   const handleImprimirRecibo = async (lote: LoteRecibo): Promise<void> => {
     setReciboParaImprimir(lote);
     
@@ -472,9 +470,135 @@ export default function ClienteDashboardPage() {
     setShowPrintModal(true);
   };
 
-  // ✅ NUEVA FUNCIÓN: Imprimir recibo
+  // Función mejorada para imprimir recibo
   const imprimirRecibo = (): void => {
-    window.print();
+    const contenidoImprimir = document.getElementById('contenido-imprimir-cliente');
+    
+    if (contenidoImprimir && reciboParaImprimir) {
+      const ventanaImpresion = window.open('', '_blank');
+      
+      if (!ventanaImpresion) {
+        alert('Por favor permite las ventanas emergentes para imprimir el recibo');
+        return;
+      }
+      
+      ventanaImpresion.document.write(`
+        <!DOCTYPE html>
+        <html>
+          <head>
+            <title>Recibo #${reciboParaImprimir.id}</title>
+            <style>
+              @page {
+                size: A4;
+                margin: 1cm;
+              }
+              body {
+                font-family: Arial, sans-serif;
+                color: black;
+                font-weight: bold;
+                background: white;
+                margin: 0;
+                padding: 15px;
+                -webkit-print-color-adjust: exact;
+                print-color-adjust: exact;
+              }
+              table {
+                width: 100%;
+                border-collapse: collapse;
+                margin: 15px 0;
+              }
+              th, td {
+                border: 1px solid black;
+                padding: 6px 10px;
+                text-align: left;
+              }
+              th {
+                background-color: #f0f0f0;
+                font-weight: bold;
+              }
+              .text-center { text-align: center; }
+              .text-right { text-align: right; }
+              .text-left { text-align: left; }
+              .font-bold { font-weight: bold; }
+              .border-b-2 { border-bottom: 2px solid black; }
+              .border-t-2 { border-top: 2px solid black; }
+              .border-t-4 { border-top: 4px solid black; }
+              .mb-2 { margin-bottom: 0.5rem; }
+              .mb-3 { margin-bottom: 0.75rem; }
+              .mb-4 { margin-bottom: 1rem; }
+              .mb-6 { margin-bottom: 1.5rem; }
+              .mt-2 { margin-top: 0.5rem; }
+              .mt-4 { margin-top: 1rem; }
+              .mt-6 { margin-top: 1.5rem; }
+              .pb-2 { padding-bottom: 0.5rem; }
+              .pb-4 { padding-bottom: 1rem; }
+              .pt-2 { padding-top: 0.5rem; }
+              .pt-4 { padding-top: 1rem; }
+              .px-4 { padding-left: 1rem; padding-right: 1rem; }
+              .py-2 { padding-top: 0.5rem; padding-bottom: 0.5rem; }
+              .py-3 { padding-top: 0.75rem; padding-bottom: 0.75rem; }
+              .grid { display: grid; }
+              .grid-cols-2 { grid-template-columns: 1fr 1fr; }
+              .gap-6 { gap: 1.5rem; }
+              .gap-8 { gap: 2rem; }
+              .space-y-2 > * + * { margin-top: 0.5rem; }
+              .space-y-3 > * + * { margin-top: 0.75rem; }
+              
+              /* Colores para impresión */
+              .bg-gray-100 { background-color: #f7fafc; }
+              .bg-gray-200 { background-color: #edf2f7; }
+              .text-red-600 { color: #dc2626; }
+              .text-green-600 { color: #16a34a; }
+              .text-blue-600 { color: #2563eb; }
+              .text-purple-600 { color: #9333ea; }
+              .bg-blue-50 { background-color: #dbeafe; }
+              .bg-red-50 { background-color: #fee2e2; }
+              .bg-green-50 { background-color: #dcfce7; }
+              .bg-purple-50 { background-color: #f3e8ff; }
+              
+              /* Estilos específicos para el recibo compacto */
+              .encabezado-recibo {
+                text-align: center;
+                margin-bottom: 1rem;
+                padding-bottom: 0.5rem;
+              }
+              .titulo-principal {
+                font-size: 24px;
+                margin-bottom: 0.25rem;
+              }
+              .subtitulo {
+                font-size: 16px;
+                margin-bottom: 0.25rem;
+              }
+              .numero-recibo {
+                font-size: 14px;
+                margin-top: 0.25rem;
+              }
+              .seccion {
+                margin-bottom: 1rem;
+              }
+              .firmas {
+                margin-top: 1.5rem;
+              }
+            </style>
+          </head>
+          <body>
+            ${contenidoImprimir.innerHTML}
+            <script>
+              window.onload = function() {
+                window.print();
+                setTimeout(function() {
+                  window.close();
+                }, 1000);
+              };
+            </script>
+          </body>
+        </html>
+      `);
+      ventanaImpresion.document.close();
+    } else {
+      window.print();
+    }
   };
 
   const handleVerDetalle = async (lote: LoteRecibo): Promise<void> => {
@@ -511,7 +635,6 @@ export default function ClienteDashboardPage() {
   const renderContent = (): React.ReactNode => {
     switch (activeSection) {
       case "maquinas":
-        // ... (mantener el código de máquinas original)
         return (
           <div>
             <div className="flex items-center justify-between mb-6">
@@ -567,7 +690,6 @@ export default function ClienteDashboardPage() {
         );
 
       case "solicitudes":
-        // ... (mantener el código de solicitudes original igual)
         return (
           <div>
             <div className="flex items-center justify-between mb-6">
@@ -772,7 +894,7 @@ export default function ClienteDashboardPage() {
               {[
                 { title: "Mis Máquinas", value: stats.totalMaquinas, bgColor: "bg-blue-100", textColor: "text-blue-600", icon: Wrench },
                 { title: "Solicitudes Pendientes", value: stats.solicitudesPendientes, bgColor: "bg-red-100", textColor: "text-red-600", icon: Wrench },
-                { title: "Total Lotes", value: stats.recibosTotal, bgColor: "bg-purple-100", textColor: "text-purple-600", icon: FileText },
+                { title: "Total Recibos", value: stats.recibosTotal, bgColor: "bg-purple-100", textColor: "text-purple-600", icon: FileText },
               ].map((card, index) => {
                 const IconComponent = card.icon;
                 return (
@@ -910,10 +1032,10 @@ export default function ClienteDashboardPage() {
 
       {/* MODAL DE VISTA PREVIA PARA IMPRIMIR */}
       {showPrintModal && reciboParaImprimir && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4 print:bg-white">
-          <div className="bg-white rounded-xl shadow-2xl w-full max-w-4xl max-h-[90vh] overflow-y-auto print:shadow-none print:max-w-full print:max-h-full">
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4 print:hidden">
+          <div className="bg-white rounded-xl shadow-2xl w-full max-w-4xl max-h-[90vh] overflow-y-auto">
             {/* Botones de acción - Solo visible en pantalla */}
-            <div className="flex justify-between items-center p-6 border-b border-gray-200 print:hidden">
+            <div className="flex justify-between items-center p-6 border-b border-gray-200">
               <h3 className="text-xl font-bold text-gray-900">Vista Previa del Recibo</h3>
               <div className="flex gap-3">
                 <button
@@ -933,24 +1055,23 @@ export default function ClienteDashboardPage() {
             </div>
 
             {/* Contenido del Recibo para Imprimir */}
-            <div className="p-8 print:p-12">
-              {/* Encabezado */}
-              <div className="text-center mb-8 border-b-2 border-gray-300 pb-6">
-                <h1 className="text-3xl font-bold text-gray-900 mb-2">RECIBO DE MÁQUINAS</h1>
-                <p className="text-lg text-gray-600">Sistema de Gestión PokerMGMT</p>
-                <p className="text-sm text-gray-500 mt-2">Recibo #{reciboParaImprimir.id}</p>
+            <div id="contenido-imprimir-cliente" className="p-4 bg-white">
+              {/* Encabezado Compacto */}
+              <div className="encabezado-recibo border-b-2 border-black">
+                <h1 className="titulo-principal font-bold text-black">RECIBO DE MÁQUINAS</h1>
+                <p className="subtitulo font-bold text-black">Sistema de Gestión PokerMGMT</p>
+                <p className="numero-recibo font-bold text-black">Recibo #{reciboParaImprimir.id}</p>
               </div>
 
               {/* Información del Cliente y Fecha */}
-              <div className="grid grid-cols-2 gap-6 mb-8">
+              <div className="grid grid-cols-2 gap-6 mb-4 seccion">
                 <div>
-                  <h3 className="text-sm font-semibold text-gray-600 mb-2">CLIENTE:</h3>
-                  <p className="text-xl font-bold text-gray-900">{reciboParaImprimir.cliente?.nombre_usuario || usuario?.nombre_usuario}</p>
-                  <p className="text-sm text-gray-600">ID Cliente: {reciboParaImprimir.cliente_id}</p>
+                  <h3 className="text-sm font-semibold text-black mb-1 font-bold">CLIENTE:</h3>
+                  <p className="text-lg font-bold text-black">{reciboParaImprimir.cliente?.nombre_usuario || usuario?.nombre_usuario}</p>
                 </div>
                 <div className="text-right">
-                  <h3 className="text-sm font-semibold text-gray-600 mb-2">FECHA:</h3>
-                  <p className="text-xl font-bold text-gray-900">
+                  <h3 className="text-sm font-semibold text-black mb-1 font-bold">FECHA:</h3>
+                  <p className="text-lg font-bold text-black">
                     {formatFecha(reciboParaImprimir.fecha_recibo)}
                   </p>
                 </div>
@@ -958,80 +1079,83 @@ export default function ClienteDashboardPage() {
 
               {/* Tabla de Máquinas */}
               {reciboParaImprimir.recibos && reciboParaImprimir.recibos.length > 0 && (
-                <div className="mb-8">
-                  <h3 className="text-lg font-bold text-gray-900 mb-4">DETALLE DE MÁQUINAS</h3>
-                  <table className="w-full border-collapse border border-gray-300">
-                    <thead className="bg-gray-100">
+                <div className="mb-4 seccion">
+                  <h3 className="text-md font-bold text-black mb-2">DETALLE DE MÁQUINAS</h3>
+                  <table className="w-full border-collapse border-2 border-black">
+                    <thead className="bg-gray-200">
                       <tr>
-                        <th className="border border-gray-300 px-4 py-3 text-left text-sm font-semibold">Máquina</th>
-                        <th className="border border-gray-300 px-4 py-3 text-right text-sm font-semibold">Ingresos (LPS)</th>
-                        <th className="border border-gray-300 px-4 py-3 text-right text-sm font-semibold">Gastos (LPS)</th>
-                        <th className="border border-gray-300 px-4 py-3 text-right text-sm font-semibold">Total (LPS)</th>
+                        <th className="border-2 border-black px-3 py-2 text-left text-sm font-bold text-black">Máquina</th>
+                        <th className="border-2 border-black px-3 py-2 text-right text-sm font-bold text-black">Ingresos (LPS)</th>
+                        <th className="border-2 border-black px-3 py-2 text-right text-sm font-bold text-black">Egresos (LPS)</th>
+                        <th className="border-2 border-black px-3 py-2 text-right text-sm font-bold text-black">Total (LPS)</th>
                       </tr>
                     </thead>
                     <tbody>
-                      {reciboParaImprimir.recibos.map((recibo, index) => (
-                        <tr key={recibo.id} className={index % 2 === 0 ? 'bg-white' : 'bg-gray-50'}>
-                          <td className="border border-gray-300 px-4 py-3 font-medium">{recibo.maquina.nombre}</td>
-                          <td className="border border-gray-300 px-4 py-3 text-right">{recibo.ingreso.toFixed(2)}</td>
-                          <td className="border border-gray-300 px-4 py-3 text-right">{recibo.egreso.toFixed(2)}</td>
-                          <td className="border border-gray-300 px-4 py-3 text-right font-bold">{recibo.total.toFixed(2)}</td>
-                        </tr>
-                      ))}
+                      {reciboParaImprimir.recibos.map((recibo, index) => {
+                        const esNegativo = recibo.total < 0;
+                        return (
+                          <tr key={recibo.id} className={index % 2 === 0 ? 'bg-white' : 'bg-gray-100'}>
+                            <td className="border border-black px-3 py-2 font-bold text-black">{recibo.maquina.nombre}</td>
+                            <td className="border border-black px-3 py-2 text-right font-bold text-black">{recibo.ingreso.toFixed(2)}</td>
+                            <td className="border border-black px-3 py-2 text-right font-bold text-black">{recibo.egreso.toFixed(2)}</td>
+                            <td className={`border border-black px-3 py-2 text-right font-bold ${esNegativo ? 'text-red-600' : 'text-black'}`}>
+                              {recibo.total.toFixed(2)}
+                            </td>
+                          </tr>
+                        );
+                      })}
                     </tbody>
                   </table>
                 </div>
               )}
 
               {/* Resumen Financiero */}
-              <div className="grid grid-cols-2 gap-8 mb-8">
-                <div className="space-y-3">
-                  <h3 className="text-lg font-bold text-gray-900 mb-4">RESUMEN TOTAL</h3>
-                  <div className="flex justify-between border-b border-gray-300 pb-2">
-                    <span className="text-gray-700">Total Ingresos:</span>
-                    <span className="font-bold">{formatMoneda(reciboParaImprimir.ingreso)}</span>
+              <div className="grid grid-cols-2 gap-6 mb-4 seccion">
+                <div className="space-y-2">
+                  <h3 className="text-md font-bold text-black mb-2">RESUMEN TOTAL</h3>
+                  <div className="flex justify-between border-b border-black pb-1">
+                    <span className="text-black font-bold text-sm">Total Ingresos:</span>
+                    <span className="font-bold text-black text-sm">{formatMoneda(reciboParaImprimir.ingreso)}</span>
                   </div>
-                  <div className="flex justify-between border-b border-gray-300 pb-2">
-                    <span className="text-gray-700">Total Gastos:</span>
-                    <span className="font-bold">{formatMoneda(reciboParaImprimir.egreso)}</span>
+                  <div className="flex justify-between border-b border-black pb-1">
+                    <span className="text-black font-bold text-sm">Total Egresos:</span>
+                    <span className="font-bold text-black text-sm">{formatMoneda(reciboParaImprimir.egreso)}</span>
                   </div>
-                  <div className="flex justify-between pt-2">
-                    <span className="text-lg font-bold">Total Neto:</span>
-                    <span className="text-lg font-bold text-green-600">{formatMoneda(reciboParaImprimir.total)}</span>
+                  <div className="flex justify-between pt-1">
+                    <span className="text-md font-bold text-black">Total Neto:</span>
+                    <span className="text-md font-bold text-black">{formatMoneda(reciboParaImprimir.total)}</span>
                   </div>
                 </div>
 
-                <div className="space-y-3">
-                  <h3 className="text-lg font-bold text-gray-900 mb-4">DISTRIBUCIÓN</h3>
-                  <div className="flex justify-between border-b border-gray-300 pb-2">
-                    <span className="text-gray-700">Parte Propietario (60%):</span>
-                    <span className="font-bold">{formatMoneda(reciboParaImprimir.parte_empresa)}</span>
+                <div className="space-y-2">
+                  <h3 className="text-md font-bold text-black mb-2">DISTRIBUCIÓN</h3>
+                  <div className="flex justify-between border-b border-black pb-1">
+                    <span className="text-black font-bold text-sm">Empresa (60%):</span>
+                    <span className="font-bold text-black text-sm">{formatMoneda(reciboParaImprimir.parte_empresa)}</span>
                   </div>
-                  <div className="flex justify-between pt-2">
-                    <span className="text-lg font-bold">Parte Cliente (40%):</span>
-                    <span className="text-lg font-bold text-blue-600">{formatMoneda(reciboParaImprimir.parte_cliente)}</span>
+                  <div className="flex justify-between pt-1">
+                    <span className="text-md font-bold text-black">Cliente (40%):</span>
+                    <span className="text-md font-bold text-black">{formatMoneda(reciboParaImprimir.parte_cliente)}</span>
                   </div>
                 </div>
               </div>
 
               {/* Pie del Recibo */}
-              <div className="border-t-2 border-gray-300 pt-6 mt-8">
-                <div className="grid grid-cols-2 gap-8 mb-6">
+              <div className="border-t-2 border-black pt-4 mt-4 firmas">
+                <div className="grid grid-cols-2 gap-6 mb-4">
                   <div>
-                    <p className="text-sm text-gray-600 mb-4">Firma del Cliente:</p>
-                    <div className="border-b-2 border-gray-300 w-full h-16"></div>
-                    <p className="text-xs text-gray-500 mt-2">{reciboParaImprimir.cliente?.nombre_usuario || usuario?.nombre_usuario}</p>
+                    <p className="text-sm text-black mb-2 font-bold">Firma del Cliente:</p>
+                    <div className="border-b border-black w-full h-12 mb-1"></div>
                   </div>
                   <div>
-                    <p className="text-sm text-gray-600 mb-4">Firma del Propietario:</p>
-                    <div className="border-b-2 border-gray-300 w-full h-16"></div>
-                    <p className="text-xs text-gray-500 mt-2">PokerMGMT</p>
+                    <p className="text-sm text-black mb-2 font-bold">Firma del Propietario:</p>
+                    <div className="border-b border-black w-full h-12 mb-1"></div>
                   </div>
                 </div>
-                <p className="text-xs text-center text-gray-500 mt-6">
+                <p className="text-xs text-center text-black mt-4 font-bold">
                   Este documento es un recibo oficial generado por el Sistema de Gestión PokerMGMT
                 </p>
-                <p className="text-xs text-center text-gray-500">
+                <p className="text-xs text-center text-black font-bold">
                   Fecha de emisión: {new Date().toLocaleString('es-ES')}
                 </p>
               </div>
@@ -1039,45 +1163,6 @@ export default function ClienteDashboardPage() {
           </div>
         </div>
       )}
-
-      {/* Estilos para impresión */}
-      <style jsx global>{`
-        @media print {
-          @page {
-            size: A4;
-            margin: 1cm;
-          }
-          
-          body {
-            print-color-adjust: exact;
-            -webkit-print-color-adjust: exact;
-          }
-          
-          .print\\:hidden {
-            display: none !important;
-          }
-          
-          .print\\:bg-white {
-            background-color: white !important;
-          }
-          
-          .print\\:shadow-none {
-            box-shadow: none !important;
-          }
-          
-          .print\\:max-w-full {
-            max-width: 100% !important;
-          }
-          
-          .print\\:max-h-full {
-            max-height: 100% !important;
-          }
-          
-          .print\\:p-12 {
-            padding: 3rem !important;
-          }
-        }
-      `}</style>
     </>
   );
 }
