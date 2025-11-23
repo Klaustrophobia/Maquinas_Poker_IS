@@ -4,19 +4,18 @@ import { useRouter } from "next/navigation";
 import { useAuth } from "@/app/context/AuthContext";
 import { useEffect } from "react";
 
-export default function DashboardLayout({ children }: { children: React.ReactNode }) {
+export default function RepuestosLayout({ children }: { children: React.ReactNode }) {
   const { usuario, loading } = useAuth();
   const router = useRouter();
 
   useEffect(() => {
     if (!loading && !usuario) {
       router.push("/login");
-    } else if (!loading && usuario && usuario.rol !== "Administrador") {
+    } else if (!loading && usuario && usuario.rol !== "SuperAdmin") {
       router.push("/login");
     }
   }, [usuario, loading, router]);
 
-  // Mostrar loading mientras verifica la autenticación
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-screen bg-gradient-to-br from-blue-50 to-purple-50">
@@ -28,8 +27,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     );
   }
 
-  // Si no está autenticado o no es administrador, no renderizar children
-  if (!usuario || usuario.rol !== "Administrador") {
+  if (!usuario || usuario.rol !== "SuperAdmin") {
     return null;
   }
 

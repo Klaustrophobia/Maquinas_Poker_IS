@@ -11,7 +11,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   useEffect(() => {
     if (!loading && !usuario) {
       router.push("/login");
-    } else if (!loading && usuario && usuario.rol !== "Administrador") {
+    } else if (!loading && usuario && usuario.rol !== "SuperAdmin") {
       router.push("/login");
     }
   }, [usuario, loading, router]);
@@ -29,7 +29,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   }
 
   // Si no está autenticado o no es administrador, no renderizar children
-  if (!usuario || usuario.rol !== "Administrador") {
+  if (!usuario || usuario.rol !== "SuperAdmin") {
     return null;
   }
 

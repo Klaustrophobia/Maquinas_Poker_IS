@@ -69,32 +69,32 @@ export default function DashboardPage() {
 
   // Funciones para las acciones rápidas
   const handleNuevoUsuario = () => {
-    router.push("/admin/usuarios?modal=addUsuario");
+    router.push("/SuperAdmin/usuarios?modal=addUsuario");
   };
 
   const handleNuevaOrden = () => {
-    router.push("/admin/ordenesTrabajo?modal=addOrden");
+    router.push("/SuperAdmin/ordenesTrabajo?modal=addOrden");
   };
 
   const handleRegistrarMaquina = () => {
-    router.push("/admin/maquinas?modal=addMaquina");
+    router.push("/SuperAdmin/maquinas?modal=addMaquina");
   };
 
   // Funciones para las tarjetas de estadísticas
   const handleVerUsuarios = () => {
-    router.push("/admin/usuarios");
+    router.push("/SuperAdmin/usuarios");
   };
 
   const handleVerRepuestos = () => {
-    router.push("/admin/repuestos");
+    router.push("/SuperAdmin/repuestos");
   };
 
   const handleVerMaquinas = () => {
-    router.push("/admin/maquinas");
+    router.push("/SuperAdmin/maquinas");
   };
 
   const handleVerProveedores = () => {
-    router.push("/admin/proveedores");
+    router.push("/SuperAdmin/proveedores");
   };
 
   return (
@@ -175,7 +175,7 @@ export default function DashboardPage() {
       </div>
 
       {/* Acciones Rápidas con fondo decorativo */}
-      <div className="bg-gradient-to-br from-white to-blue-50/30 rounded-2xl shadow-lg border border-blue-100/50 p-6 mb-8 relative overflow-hidden">
+      <div className="bg-gradient-to-br from-white from-blue-500/10 to-purple-600/10 rounded-2xl shadow-lg border border-blue-100/50 p-6 mb-8 relative overflow-hidden">
         {/* Elementos decorativos de fondo */}
         <div className="absolute top-0 right-0 w-24 h-24 bg-gradient-to-bl from-orange-500/10 to-red-600/10 rounded-full -translate-y-8 translate-x-8"></div>
         <div className="absolute bottom-0 left-0 w-20 h-20 bg-gradient-to-tr from-purple-500/10 to-pink-600/10 rounded-full translate-y-8 -translate-x-8"></div>
@@ -211,10 +211,10 @@ export default function DashboardPage() {
                   className="bg-white rounded-xl shadow-sm hover:shadow-lg transition-all p-6 text-left group border border-gray-100 hover:border-blue-200 relative overflow-hidden"
                 >
                   {/* Elemento decorativo de fondo para cada acción */}
-                  <div className="absolute top-0 right-0 w-8 h-8 bg-gradient-to-bl from-blue-500/5 to-purple-600/5 rounded-full -translate-y-2 translate-x-2"></div>
+                  <div className="absolute top-0 right-0 w-8 h-8 bg-gradient-to-bl from-blue-500/10 to-purple-600/10 rounded-full -translate-y-2 translate-x-2"></div>
                   
                   <div className="flex items-start gap-4 relative z-10">
-                    <div className="bg-gradient-to-br from-blue-500 to-purple-600 text-white p-3 rounded-lg group-hover:scale-110 transition-transform">
+                    <div className="bg-gradient-to-br from-esmerald-400 to-cyan-500 text-white p-3 rounded-lg group-hover:scale-110 transition-transform">
                       <IconComponent className="w-5 h-5" />
                     </div>
                     <div className="flex-1">
