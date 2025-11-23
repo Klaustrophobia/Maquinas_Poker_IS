@@ -185,14 +185,6 @@ export default function LoginPage() {
             {mensaje}
           </div>
         )}
-
-        {/* Sign up link */}
-        <p className="mt-6 text-center text-sm text-gray-600">
-          ¿No tienes una cuenta?{" "}
-          <a href="#" className="text-blue-600 hover:text-blue-700 font-semibold">
-            Regístrate
-          </a>
-        </p>
       </div>
     </div>
   );

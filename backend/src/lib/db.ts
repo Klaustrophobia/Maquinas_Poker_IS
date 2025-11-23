@@ -17,7 +17,7 @@ export const AppDataSource = new DataSource({
   database: process.env.DB_NAME || 'Maquinas_Poker',
   synchronize: false,
   entities: [Usuario, Proveedor, Repuesto, Maquina, MaquinaCliente, Recibo, LoteRecibo],
-  logging: true,
+  logging: ["log", "error", "warn"],
 });
 
 export const initializeDatabase = async () => {

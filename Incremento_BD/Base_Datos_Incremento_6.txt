@@ -1,0 +1,19 @@
+--------------------------------------------------------------------------------------------------------
+-- primer paso:
+
+-- Primero modificar el tipo ENUM para agregar el nuevo rol
+ALTER TYPE tipo_rol ADD VALUE 'SuperAdmin';
+
+-- Insertar el nuevo rol SuperAdmin en la tabla roles
+INSERT INTO roles (nombre, descripcion, permisos) 
+VALUES (
+    'SuperAdmin',
+    'Rol con permisos máximos del sistema, incluye todas las funcionalidades de Administrador con privilegios adicionales',
+    '{"permisos_totales": true, "acceso_completo": true}'::jsonb
+);
+
+----------------------------------------------------------------------------------------------------------
+----------------------------------------------------------------------------------------------------------
+-- segundo paso:
+
+

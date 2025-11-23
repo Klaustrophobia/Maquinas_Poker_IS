@@ -66,6 +66,8 @@ export default function VerifyPage() {
             router.push("/tecnico/dashboard");
           } else if (data.usuario.rol === "Cliente") {
             router.push("/cliente/dashboard");
+          } else if (data.usuario.rol === "SuperAdmin") {
+            router.push("/SuperAdmin/dashboard");
           } else {
             // Rol no reconocido, redirigir a una página por defecto
             router.push("/");
