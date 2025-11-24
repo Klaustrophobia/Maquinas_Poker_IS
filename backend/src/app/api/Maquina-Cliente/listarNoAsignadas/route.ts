@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { AppDataSource } from "@/lib/db";
-import { Maquina } from "@/entities/Maquina";
+import { EstadoMaquina, Maquina } from "@/entities/Maquina";
 import { MaquinaCliente } from "@/entities/MaquinaCliente";
 import { In, Not } from "typeorm";
 
@@ -19,8 +19,15 @@ export async function GET() {
 
     const maquinas =
       idsAsignadas.length > 0
-        ? await maquinaRepo.find({ where: { id: Not(In(idsAsignadas)) } })
-        : await maquinaRepo.find();
+        ? await maquinaRepo.find({
+            where: {
+              id: Not(In(idsAsignadas)),
+              estado: EstadoMaquina.FUNCIONANDO,
+            },
+          })
+        : await maquinaRepo.find({
+            where: { estado: EstadoMaquina.FUNCIONANDO },
+          });
 
     return NextResponse.json(maquinas);
   } catch (error: unknown) {

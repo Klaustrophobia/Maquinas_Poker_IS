@@ -15,6 +15,13 @@ export class UsuarioController {
       const activo = searchParams.get("activo");
       const search = searchParams.get("search");
 
+      if (rol === "Cliente" && activo === "true") {
+        const usuarios = await this.usuarioService.getUsuariosByActiveStatus(true);
+        return NextResponse.json(
+        usuarios.filter(u => u.rol === "Cliente")
+        );
+      }
+
       if (rol) {
         const usuarios = await this.usuarioService.getUsuariosByRol(rol);
         return NextResponse.json(usuarios);

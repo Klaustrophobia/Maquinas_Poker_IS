@@ -6,10 +6,10 @@ export async function GET() {
   try {
     const db = await AppDataSource.initialize().catch(() => AppDataSource);
     const usuarioRepo = db.getRepository(Usuario);
-
-    // Traer solo usuarios con rol 'cliente'
+    
+    // Traer solo usuarios con rol cliente y que estén activos
     const clientes = await usuarioRepo.find({
-      where: { rol: "Cliente" },
+      where: { rol: "Cliente", activo: true },
     });
 
     return NextResponse.json(clientes, { status: 200 });

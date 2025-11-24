@@ -11,11 +11,15 @@ export class MaquinaClienteService {
     const maquinaRepo = AppDataSource.getRepository(Maquina);
     const repo = AppDataSource.getRepository(MaquinaCliente);
 
-    const cliente = await usuarioRepo.findOneBy({ id: clienteId });
-    if (!cliente) throw new Error("Cliente no encontrado");
+    const cliente = await usuarioRepo.findOne({ where: { id: clienteId, activo: true } });
+    if (!cliente) throw new Error("Cliente no encontrado o inactivo");
 
     const maquina = await maquinaRepo.findOneBy({ id: maquinaId });
     if (!maquina) throw new Error("Máquina no encontrada");
+
+    if (maquina.estado !== "Funcionando") {
+      throw new Error("La máquina no está en estado 'Funcionando'");
+    }
 
     // Validar que la máquina no esté asignada
     const yaAsignada = await repo.findOne({
@@ -66,13 +70,13 @@ export class MaquinaClienteService {
     const usuarioRepo = AppDataSource.getRepository(Usuario);
     const repo = AppDataSource.getRepository(MaquinaCliente);
 
-    // 1. Verificar que el nuevo cliente existe
-    const nuevoCliente = await usuarioRepo.findOneBy({ id: nuevoClienteId });
+    // Verificar que el cliente exista y esté activo xd
+    const nuevoCliente = await usuarioRepo.findOne({ where : { id: nuevoClienteId, activo: true } });
     if (!nuevoCliente) {
-      throw new Error("El nuevo cliente no existe");
+      throw new Error("El nuevo cliente no existe o está inactivo");
     }
 
-    // 2. Obtener la asignación actual de la máquina
+    
     const asignacionActual = await repo.findOne({
       where: { maquina: { id: maquinaId } },
       relations: ["cliente", "maquina"]
@@ -82,17 +86,17 @@ export class MaquinaClienteService {
       throw new Error("La máquina no está asignada a ningún cliente");
     }
 
-    // 3. Validación opcional: verificar cliente anterior si se proporciona
+    
     if (clienteAnteriorId && asignacionActual.cliente.id !== clienteAnteriorId) {
       throw new Error("La máquina no está asignada al cliente especificado");
     }
 
-    // 4. Verificar que no sea la misma reasignación
+    
     if (asignacionActual.cliente.id === nuevoClienteId) {
       throw new Error("La máquina ya está asignada a este cliente");
     }
 
-    // 5. Actualizar la asignación con el nuevo cliente
+    
     asignacionActual.cliente = nuevoCliente;
     asignacionActual.fecha_asignacion = new Date(); // Actualizar fecha de asignación
 
