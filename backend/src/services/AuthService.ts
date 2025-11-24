@@ -67,12 +67,14 @@ export class AuthService {
       throw new Error("Error de configuración: JWT_SECRET no está definido en variables de entorno");
     }
 
+    
+
     const usuario = await this.usuarioRepo.findByCorreo(correo);
     if (!usuario) throw new Error("Usuario no encontrado.");
     if (!usuario.codigo_login) throw new Error("No hay un código de verificación pendiente.");
     if (usuario.codigo_login !== codigo) throw new Error("Código incorrecto.");
-
-    // Limpiar el código después de usarlo
+    if(!usuario?.activo) { throw new Error("Cuenta desactivada.");} // If para desactivar la cuenta del usuario xd
+    
     usuario.codigo_login = undefined;
     await this.usuarioRepo.save(usuario);
 
