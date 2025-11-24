@@ -4,14 +4,14 @@ import { useRouter } from "next/navigation";
 import { useAuth } from "@/app/context/AuthContext";
 import { useEffect } from "react";
 
-export default function dashboardLayout({ children }: { children: React.ReactNode }) {
+export default function solicitudesLayout({ children }: { children: React.ReactNode }) {
   const { usuario, loading } = useAuth();
   const router = useRouter();
 
   useEffect(() => {
     if (!loading && !usuario) {
       router.push("/login");
-    } else if (!loading && usuario && usuario.rol !== "Tecnico") {
+    } else if (!loading && usuario && usuario.rol !== "Cliente") {
       router.push("/login");
     }
   }, [usuario, loading, router]);
@@ -27,7 +27,7 @@ export default function dashboardLayout({ children }: { children: React.ReactNod
     );
   }
 
-  if (!usuario || usuario.rol !== "Tecnico") {
+  if (!usuario || usuario.rol !== "Cliente") {
     return null;
   }
 

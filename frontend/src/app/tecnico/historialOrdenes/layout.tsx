@@ -4,7 +4,7 @@ import { useRouter } from "next/navigation";
 import { useAuth } from "@/app/context/AuthContext";
 import { useEffect } from "react";
 
-export default function dashboardLayout({ children }: { children: React.ReactNode }) {
+export default function historialLayout({ children }: { children: React.ReactNode }) {
   const { usuario, loading } = useAuth();
   const router = useRouter();
 
