@@ -133,7 +133,7 @@ export default function ClienteLayout({ children }: { children: React.ReactNode 
               {sidebarOpen && (
                 <div className="relative">
                   <h1 className="font-bold text-gray-900 text-lg relative z-10">
-                    Portal Cliente
+                    Cliente
                   </h1>
                   <p className="text-xs text-gray-500 relative z-10">Sistema de Gestión</p>
                 </div>
@@ -202,7 +202,7 @@ export default function ClienteLayout({ children }: { children: React.ReactNode 
                 <div className="w-2 h-8 bg-gradient-to-b from-red-400 to-red-600 rounded-full"></div>
                 <div className="relative">
                   <h1 className="text-xl font-bold bg-gradient-to-r from-gray-900 to-gray-700 bg-clip-text text-transparent relative z-10">
-                    ProATS - Cliente
+                    ProATS
                   </h1>
                 </div>
               </div>
