@@ -49,46 +49,38 @@ export default function AsignarMaquina() {
   const fetchData = async () => {
     setError(null);
     try {
-      console.log('Iniciando carga de datos...');
-
+      
       // Máquinas no asignadas - URL absoluta con puerto 3000
       const resNoAsignadas = await fetch('http://localhost:3000/api/Maquina-Cliente/listarNoAsignadas');
-      console.log('Status no asignadas:', resNoAsignadas.status);
       
       if (!resNoAsignadas.ok) {
         throw new Error(`Error ${resNoAsignadas.status} al cargar máquinas no asignadas`);
       }
       
       const noAsignadasData = await resNoAsignadas.json();
-      console.log('Datos no asignadas:', noAsignadasData);
       setMaquinasNoAsignadas(noAsignadasData);
 
       // Máquinas asignadas - URL absoluta con puerto 3000
       const resAsignadas = await fetch('http://localhost:3000/api/Maquina-Cliente/listarTodas');
-      console.log('Status asignadas:', resAsignadas.status);
       
       if (!resAsignadas.ok) {
         throw new Error(`Error ${resAsignadas.status} al cargar máquinas asignadas`);
       }
       
       const asignadasData = await resAsignadas.json();
-      console.log('Datos asignadas:', asignadasData);
       setMaquinasAsignadas(asignadasData);
 
       // Clientes solo rol cliente - URL absoluta con puerto 3000
       const resClientes = await fetch('http://localhost:3000/api/Usuario/Cliente');
-      console.log('Status clientes:', resClientes.status);
       
       if (!resClientes.ok) {
         throw new Error(`Error ${resClientes.status} al cargar clientes`);
       }
       
       const clientesData = await resClientes.json();
-      console.log('Datos clientes:', clientesData);
       setClientes(clientesData);
 
-      console.log('Todos los datos cargados exitosamente');
-
+      
     } catch (error) {
       console.error("Error completo al cargar datos:", error);
       setError(error instanceof Error ? error.message : "Error desconocido al cargar datos");

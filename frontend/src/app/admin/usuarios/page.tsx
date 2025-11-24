@@ -43,7 +43,6 @@ export default function UsuariosPage() {
       const res = await fetch(`${backendUrl}/api/Usuario`);
       if (res.ok) {
         const data = await res.json();
-        console.log("Datos de usuarios recibidos:", data);
         const usuariosArray = Array.isArray(data) ? data : [];
         setUsuarios(usuariosArray);
       } else {
@@ -78,7 +77,6 @@ export default function UsuariosPage() {
   const handleAddUsuario = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
-      console.log("=== DEBUG DETALLADO ===");
       
       const userData = {
         nombre_usuario: usuarioFormData.nombre_usuario.trim(),
@@ -86,9 +84,6 @@ export default function UsuariosPage() {
         rol: usuarioFormData.rol,
         correo: usuarioFormData.correo.trim(),
       };
-
-      console.log("1. Datos preparados:", JSON.stringify(userData, null, 2));
-      console.log("2. URL:", `${backendUrl}/api/Usuario`);
 
       const res = await fetch(`${backendUrl}/api/Usuario`, {
         method: "POST",
@@ -99,14 +94,9 @@ export default function UsuariosPage() {
         body: JSON.stringify(userData),
       });
       
-      console.log("3. Status:", res.status);
-      console.log("4. Status Text:", res.statusText);
-      
       const responseText = await res.text();
-      console.log("5. Respuesta completa:", responseText);
       
       if (res.ok) {
-        console.log(" USUARIO CREADO EXITOSAMENTE");
         setShowAddUsuarioModal(false);
         setUsuarioFormData({ 
           nombre_usuario: "", 
@@ -138,7 +128,6 @@ export default function UsuariosPage() {
     if (!selectedUsuario) return;
     
     try {
-      console.log("Editando usuario:", selectedUsuario.id, usuarioFormData);
       
       const res = await fetch(`${backendUrl}/api/Usuario/${selectedUsuario.id}`, {
         method: "PUT",
@@ -154,7 +143,6 @@ export default function UsuariosPage() {
       
       if (res.ok) {
         const updatedUser = await res.json();
-        console.log("Usuario actualizado:", updatedUser);
         setShowEditUsuarioModal(false);
         setUsuarioFormData({ nombre_usuario: "", contraseña:"", correo: "", rol: "", activo: "true" });
         setSelectedUsuario(null);
@@ -199,7 +187,6 @@ export default function UsuariosPage() {
   // Contar usuarios por rol para las estadísticas del filtro
   const contarUsuariosPorRol = (rol: string) => {
     const count = usuarios.filter((user: Usuario) => user.rol === rol).length;
-    console.log(`Contando ${rol}: ${count}`);
     return count;
   };
 
