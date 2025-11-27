@@ -73,7 +73,7 @@ export default function DashboardPage() {
     try {
       // ENDPOINT CORREGIDO - usar el correcto
       const response = await fetch(
-        `${backendUrl}/api/SolicitudReparacion/tecnico/${usuario.id}`, // ← SIN "s" en "tecnico"
+        `${backendUrl}/api/SolicitudReparacion/tecnicos/${usuario.id}`, // ← SIN "s" en "tecnico"
         {
           method: 'GET',
           headers: {
@@ -146,7 +146,7 @@ export default function DashboardPage() {
     try {
       // USAR EL MISMO ENDPOINT CORREGIDO
       const response = await fetch(
-        `${backendUrl}/api/SolicitudReparacion/tecnico/${usuario?.id}`, // ← SIN "s" en "tecnico"
+        `${backendUrl}/api/SolicitudReparacion/tecnicos/${usuario?.id}`, // ← SIN "s" en "tecnico"
         {
           method: 'GET',
           headers: {

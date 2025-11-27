@@ -281,28 +281,9 @@ INSERT INTO roles (nombre, descripcion) VALUES
 ('Cliente', 'Puede ver sus máquinas y reportar problemas');
 
 -- Insertar usuarios
+-- deben de poner un correo real para poder inicializar todo
 INSERT INTO usuarios (nombre_usuario, contraseña, rol, correo, identificador_unico, codigo_login) VALUES
-('Jose', 'admin123', 'SuperAdmin', 'joseenrique.funez@gmail.com', 'Admin1',     NULL),
-('Kora', 'cliente123', 'Cliente', 'jkora16102018@gmail.com', 'Client1', NULL),
-('Jeon', 'tecnico123', 'Tecnico', 'columnaj44@gmail.com', 'Tech1', NULL),
-('Juan', 'admin123', 'Administrador', 'juanmecanico@gmail.com', 'Admin2', NULL),
-('Claudio', 'cla123', 'Tecnico', 'cposas@gmail.com', 'Tech2', NULL),
-('kevin', 'prueba123', 'Cliente', 'kevZelaya@gmail.com', 'Admin3', NULL),
-('marco', 'prueba567', 'Tecnico', 'marcKJ@gmail.com', 'Tech3', NULL),
-('harold', 'harold123', 'Cliente', 'HaroldCoello@gmail.com', 'Client3', NULL),
-('maky', 'Makyna123', 'Cliente', 'makyNas@gmail.com', 'Client4', NULL),
-('vladimir', 'prueba123', 'Cliente', 'vladmds@gmail.com', 'Client5', NULL),
-('jose montero', 'prueba123', 'Cliente', 'prueba@gmail.com', 'Client6', NULL),
-('Enrique', 'enruqie123', 'Cliente', 'EnriqueFC@gmail.com', 'Admin4', NULL),
-('salvador', 'nasralla123', 'Cliente', 'NasrallaC@gmail.com', '56dea2fa-952e-49aa-876c-babd965e883f', NULL),
-('eliza', 'sadsad', 'Administrador', 'sdsadsad@gmail.com', '96a06468-196c-4b02-91f9-2849b30293ab', NULL),
-('quijote', 'quijote123', 'Tecnico', 'quijotexds@gmail.com', '327d4f0f-18b0-4ce0-babe-d3d9d7762cbf', NULL),
-('jorge', 'cliente123', 'Tecnico', 'jorge@gmail.com', '8f09099e-04f2-4de9-915b-3749d5c6539d', NULL),
-('marco antonio', 'MArctec123', 'Tecnico', 'marco@gmail.com', '5282afff-fae4-425d-b7c2-a6bca033276a', NULL),
-('sauceda', 'word123', 'Cliente', 'correo@gmail.com', '496f5067-b3f7-456b-a55b-e17202c3c313', NULL),
-('Marta', 'martalagarta', 'Cliente', 'marta@gmail.com', 'ce6b882a-c271-403b-beff-c9830c52f795', NULL),
-('zaira', 'zaipi123', 'Cliente', 'zpineda@gmail.com', 'c337e8c2-02a6-4db6-9316-b5d8272d0823', NULL),
-('Jose Enrique', 'dcdscdscds', 'Cliente', 'prueba123456789@gmail.com', '6b0fc031-7a42-4434-bd9c-b0c4ccbf87a9', NULL);
+('admin', '1234', 'SuperAdmin', 'prueba@gmail.com', '6b0fc031-7a42-4434-bd9c-b0c4ccbf87a9', NULL);
 
 -- Insertar máquinas
 INSERT INTO maquinas (nombre, tipo, estado, ubicacion, fecha_compra, fecha_garantia) VALUES
