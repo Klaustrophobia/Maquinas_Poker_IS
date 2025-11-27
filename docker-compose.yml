@@ -1,0 +1,54 @@
+services:
+  database:
+    image: postgres:15
+    container_name: poker_database  # ← en minúsculas
+    environment:
+      POSTGRES_DB: Maquinas_Poker
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: oracle
+    ports:
+      - "5432:5432"
+    volumes:
+      - ./database/data:/var/lib/postgresql/data
+      - ./database/init.sql:/docker-entrypoint-initdb.d/init.sql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d Maquinas_Poker"]
+      interval: 5s
+      timeout: 10s
+      retries: 10
+
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: poker_backend
+    environment:
+      DB_HOST: poker_database  # ← CORREGIDO: minúsculas
+      DB_PORT: 5432
+      DB_USER: postgres
+      DB_PASS: oracle
+      DB_NAME: Maquinas_Poker
+      NODE_ENV: production
+      PORT: 3000
+    ports:
+      - "3000:3000"
+    depends_on:
+      database:
+        condition: service_healthy
+    restart: unless-stopped
+    command: sh -c "sleep 20 && npm start"
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: poker_frontend
+    environment:
+      NEXT_PUBLIC_API_URL: http://localhost:3000
+      PORT: 3001
+    ports:
+      - "3001:3001"
+    depends_on:
+      - backend
+    restart: unless-stopped
+    command: sh -c "sleep 25 && npm start"

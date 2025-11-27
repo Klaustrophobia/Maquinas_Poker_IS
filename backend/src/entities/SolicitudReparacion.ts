@@ -70,5 +70,5 @@ export class SolicitudReparacion {
 
   // SOLUCIÓN: Usar tipo any temporalmente para romper la dependencia circular
   @OneToMany(() => require("./RepuestoUtilizado").RepuestoUtilizado, (repuestoUtilizado: any) => repuestoUtilizado.solicitud)
-  repuestos_utilizados!: RepuestoUtilizado[];
+  repuestos_utilizados!: any[];
 }
