@@ -1,0 +1,22 @@
+Dependencias Backend
+npm install typeorm reflect-metadata pg bcrypt nodemailer jsonwebtoken
+npm install cors
+npm install express
+npm install -D @types/express
+npm install uuid
+npm install @types/uuid --save-dev
+npm install --save-dev @types/bcrypt @types/jsonwebtoken
+npm install --save-dev jest ts-jest @types/jest
+npm install --save-dev ts-node
+npm install -D @types/nodemailer
+npm install nodemailer
+
+
+--importante hacer esto
+-- eliminen el trigger por lo del identificador unico:
+DROP TRIGGER IF EXISTS trigger_identificador_unico ON public.usuarios;
+DROP FUNCTION IF EXISTS public.generar_identificador_unico();
+
+
+Dependencias Frontend
+npm install lucide-react   

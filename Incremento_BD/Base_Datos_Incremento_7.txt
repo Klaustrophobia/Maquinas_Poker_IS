@@ -1,0 +1,601 @@
+-- 1. Crear tipos de datos enumerados si no existen
+DROP TYPE IF EXISTS estado_solicitud CASCADE;
+CREATE TYPE estado_solicitud AS ENUM ('pendiente', 'tecnico_asignado', 'prefinalizada', 'finalizada');
+
+DROP TYPE IF EXISTS gravedad_falla CASCADE;
+CREATE TYPE gravedad_falla AS ENUM ('leve', 'moderada', 'grave');
+
+-- 2. Tabla de solicitudes de reparación
+CREATE TABLE IF NOT EXISTS public.solicitudes_reparacion
+(
+    id bigint NOT NULL GENERATED ALWAYS AS IDENTITY ( INCREMENT 1 START 1 MINVALUE 1 MAXVALUE 9223372036854775807 CACHE 1 ),
+    cliente_id bigint NOT NULL,
+    maquina_id bigint NOT NULL,
+    descripcion_falla text COLLATE pg_catalog."default" NOT NULL,
+    gravedad gravedad_falla NOT NULL,
+    estado estado_solicitud DEFAULT 'pendiente'::estado_solicitud,
+    tecnico_asignado_id bigint,
+    fecha_hora_reparacion timestamp with time zone,
+    fecha_creacion timestamp with time zone DEFAULT now(),
+    fecha_actualizacion timestamp with time zone DEFAULT now(),
+    observaciones_tecnico text COLLATE pg_catalog."default",
+    fecha_reparacion_terminada timestamp with time zone,
+    fecha_finalizada timestamp with time zone,
+    CONSTRAINT solicitudes_reparacion_pkey PRIMARY KEY (id),
+    CONSTRAINT solicitudes_reparacion_cliente_id_fkey FOREIGN KEY (cliente_id)
+        REFERENCES public.usuarios (id) MATCH SIMPLE
+        ON UPDATE NO ACTION
+        ON DELETE NO ACTION,
+    CONSTRAINT solicitudes_reparacion_maquina_id_fkey FOREIGN KEY (maquina_id)
+        REFERENCES public.maquinas (id) MATCH SIMPLE
+        ON UPDATE NO ACTION
+        ON DELETE NO ACTION,
+    CONSTRAINT solicitudes_reparacion_tecnico_asignado_id_fkey FOREIGN KEY (tecnico_asignado_id)
+        REFERENCES public.usuarios (id) MATCH SIMPLE
+        ON UPDATE NO ACTION
+        ON DELETE NO ACTION
+);
+
+-- 3. Tabla para los repuestos utilizados en las reparaciones
+CREATE TABLE IF NOT EXISTS public.repuestos_utilizados
+(
+    id bigint NOT NULL GENERATED ALWAYS AS IDENTITY ( INCREMENT 1 START 1 MINVALUE 1 MAXVALUE 9223372036854775807 CACHE 1 ),
+    solicitud_id bigint NOT NULL,
+    repuesto_id bigint NOT NULL,
+    cantidad_utilizada integer NOT NULL,
+    fecha_uso timestamp with time zone DEFAULT now(),
+    CONSTRAINT repuestos_utilizados_pkey PRIMARY KEY (id),
+    CONSTRAINT repuestos_utilizados_solicitud_id_fkey FOREIGN KEY (solicitud_id)
+        REFERENCES public.solicitudes_reparacion (id) MATCH SIMPLE
+        ON UPDATE NO ACTION
+        ON DELETE NO ACTION,
+    CONSTRAINT repuestos_utilizados_repuesto_id_fkey FOREIGN KEY (repuesto_id)
+        REFERENCES public.repuestos (id) MATCH SIMPLE
+        ON UPDATE NO ACTION
+        ON DELETE NO ACTION
+);
+
+-- 4. Tabla para notificaciones
+CREATE TABLE IF NOT EXISTS public.notificaciones
+(
+    id bigint NOT NULL GENERATED ALWAYS AS IDENTITY ( INCREMENT 1 START 1 MINVALUE 1 MAXVALUE 9223372036854775807 CACHE 1 ),
+    usuario_id bigint NOT NULL,
+    titulo text COLLATE pg_catalog."default" NOT NULL,
+    mensaje text COLLATE pg_catalog."default" NOT NULL,
+    tipo text COLLATE pg_catalog."default" NOT NULL,
+    leida boolean DEFAULT false,
+    fecha_creacion timestamp with time zone DEFAULT now(),
+    relacion_id bigint, -- ID de la solicitud relacionada
+    CONSTRAINT notificaciones_pkey PRIMARY KEY (id),
+    CONSTRAINT notificaciones_usuario_id_fkey FOREIGN KEY (usuario_id)
+        REFERENCES public.usuarios (id) MATCH SIMPLE
+        ON UPDATE NO ACTION
+        ON DELETE NO ACTION
+);
+
+-- 5. Índices para mejor performance
+CREATE INDEX IF NOT EXISTS idx_solicitudes_cliente
+    ON public.solicitudes_reparacion USING btree (cliente_id);
+
+CREATE INDEX IF NOT EXISTS idx_solicitudes_maquina
+    ON public.solicitudes_reparacion USING btree (maquina_id);
+
+CREATE INDEX IF NOT EXISTS idx_solicitudes_tecnico
+    ON public.solicitudes_reparacion USING btree (tecnico_asignado_id);
+
+CREATE INDEX IF NOT EXISTS idx_solicitudes_estado
+    ON public.solicitudes_reparacion USING btree (estado);
+
+CREATE INDEX IF NOT EXISTS idx_solicitudes_fecha_creacion
+    ON public.solicitudes_reparacion USING btree (fecha_creacion DESC);
+
+CREATE INDEX IF NOT EXISTS idx_repuestos_utilizados_solicitud
+    ON public.repuestos_utilizados USING btree (solicitud_id);
+
+CREATE INDEX IF NOT EXISTS idx_repuestos_utilizados_repuesto
+    ON public.repuestos_utilizados USING btree (repuesto_id);
+
+CREATE INDEX IF NOT EXISTS idx_notificaciones_usuario
+    ON public.notificaciones USING btree (usuario_id);
+
+CREATE INDEX IF NOT EXISTS idx_notificaciones_leida
+    ON public.notificaciones USING btree (leida);
+
+-- 6. Función y Trigger para actualizar fecha_actualizacion
+CREATE OR REPLACE FUNCTION actualizar_fecha_actualizacion()
+RETURNS TRIGGER AS $$
+BEGIN
+    NEW.fecha_actualizacion = NOW();
+    RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+CREATE TRIGGER trigger_actualizar_fecha_solicitudes
+    BEFORE UPDATE ON public.solicitudes_reparacion
+    FOR EACH ROW
+    EXECUTE FUNCTION actualizar_fecha_actualizacion();
+
+-- 7. Función y Trigger para cambiar estado de máquina cuando se crea una solicitud
+CREATE OR REPLACE FUNCTION cambiar_estado_maquina_solicitud()
+RETURNS TRIGGER AS $$
+BEGIN
+    -- Cuando se crea una solicitud en estado 'pendiente', cambiar máquina a 'Fuera de Servicio'
+    IF TG_OP = 'INSERT' AND NEW.estado = 'pendiente' THEN
+        UPDATE public.maquinas 
+        SET estado = 'Fuera de Servicio'::estado_maquina 
+        WHERE id = NEW.maquina_id;
+        
+        -- También actualizar en maquinas_cliente si existe
+        UPDATE public.maquinas_cliente 
+        SET estado = 'Fuera de Servicio' 
+        WHERE maquina_id = NEW.maquina_id AND cliente_id = NEW.cliente_id;
+    END IF;
+    
+    RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+CREATE TRIGGER trigger_cambiar_estado_maquina_insert
+    AFTER INSERT ON public.solicitudes_reparacion
+    FOR EACH ROW
+    EXECUTE FUNCTION cambiar_estado_maquina_solicitud();
+
+-- 8. Función y Trigger para cambiar estado de máquina cuando se actualiza una solicitud
+CREATE OR REPLACE FUNCTION cambiar_estado_maquina_actualizacion()
+RETURNS TRIGGER AS $$
+BEGIN
+    -- Cuando la solicitud cambia a 'finalizada', cambiar máquina a 'Funcionando'
+    IF NEW.estado = 'finalizada' AND OLD.estado != 'finalizada' THEN
+        UPDATE public.maquinas 
+        SET estado = 'Funcionando'::estado_maquina 
+        WHERE id = NEW.maquina_id;
+        
+        -- También actualizar en maquinas_cliente si existe
+        UPDATE public.maquinas_cliente 
+        SET estado = 'Funcionando' 
+        WHERE maquina_id = NEW.maquina_id AND cliente_id = NEW.cliente_id;
+    END IF;
+    
+    RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+CREATE TRIGGER trigger_cambiar_estado_maquina_update
+    AFTER UPDATE ON public.solicitudes_reparacion
+    FOR EACH ROW
+    EXECUTE FUNCTION cambiar_estado_maquina_actualizacion();
+
+-- 9. Función para crear notificaciones automáticamente
+CREATE OR REPLACE FUNCTION crear_notificacion_automatica()
+RETURNS TRIGGER AS $$
+DECLARE
+    admin_id bigint;
+    cliente_email text;
+    tecnico_email text;
+    admin_email text;
+    maquina_nombre text;
+    cliente_nombre text;
+    tecnico_nombre text;
+BEGIN
+    -- Obtener información adicional
+    SELECT nombre INTO maquina_nombre FROM public.maquinas WHERE id = NEW.maquina_id;
+    SELECT nombre_usuario, correo INTO cliente_nombre, cliente_email FROM public.usuarios WHERE id = NEW.cliente_id;
+    
+    -- Notificación para el cliente cuando se crea la solicitud
+    IF TG_OP = 'INSERT' THEN
+        INSERT INTO public.notificaciones (usuario_id, titulo, mensaje, tipo, relacion_id)
+        VALUES (NEW.cliente_id, 'Solicitud de Reparación Creada', 
+                'Se ha creado su solicitud de reparación para la máquina ' || maquina_nombre || '. Estado: Pendiente',
+                'solicitud_creada', NEW.id);
+                
+        -- Notificación para administradores (SuperAdmin y Administrador)
+        FOR admin_id IN 
+            SELECT id FROM public.usuarios 
+            WHERE rol IN ('SuperAdmin'::tipo_rol, 'Administrador'::tipo_rol) 
+            AND activo = true
+        LOOP
+            INSERT INTO public.notificaciones (usuario_id, titulo, mensaje, tipo, relacion_id)
+            VALUES (admin_id, 'Nueva Solicitud de Reparación', 
+                    'El cliente ' || cliente_nombre || ' ha reportado una falla en la máquina ' || maquina_nombre || '. Gravedad: ' || NEW.gravedad,
+                    'nueva_solicitud', NEW.id);
+        END LOOP;
+    END IF;
+    
+    -- Notificación cuando se asigna técnico
+    IF TG_OP = 'UPDATE' AND NEW.tecnico_asignado_id IS NOT NULL AND OLD.tecnico_asignado_id IS NULL THEN
+        SELECT nombre_usuario, correo INTO tecnico_nombre, tecnico_email FROM public.usuarios WHERE id = NEW.tecnico_asignado_id;
+        
+        -- Notificación al cliente
+        INSERT INTO public.notificaciones (usuario_id, titulo, mensaje, tipo, relacion_id)
+        VALUES (NEW.cliente_id, 'Técnico Asignado', 
+                'Se ha asignado el técnico ' || tecnico_nombre || ' para reparar su máquina ' || maquina_nombre || '. Fecha: ' || TO_CHAR(NEW.fecha_hora_reparacion, 'DD/MM/YYYY HH24:MI'),
+                'tecnico_asignado', NEW.id);
+                
+        -- Notificación al técnico
+        INSERT INTO public.notificaciones (usuario_id, titulo, mensaje, tipo, relacion_id)
+        VALUES (NEW.tecnico_asignado_id, 'Nueva Orden de Trabajo Asignada', 
+                'Se le ha asignado la reparación de la máquina ' || maquina_nombre || ' del cliente ' || cliente_nombre || '. Fecha: ' || TO_CHAR(NEW.fecha_hora_reparacion, 'DD/MM/YYYY HH24:MI'),
+                'orden_trabajo', NEW.id);
+    END IF;
+    
+    -- Notificación cuando la reparación está prefinalizada
+    IF TG_OP = 'UPDATE' AND NEW.estado = 'prefinalizada' AND OLD.estado != 'prefinalizada' THEN
+        INSERT INTO public.notificaciones (usuario_id, titulo, mensaje, tipo, relacion_id)
+        VALUES (NEW.cliente_id, 'Reparación Completada', 
+                'El técnico ha completado la reparación de su máquina ' || maquina_nombre || '. Por favor verifique el funcionamiento.',
+                'reparacion_completada', NEW.id);
+    END IF;
+    
+    -- Notificación cuando la reparación está finalizada
+    IF TG_OP = 'UPDATE' AND NEW.estado = 'finalizada' AND OLD.estado != 'finalizada' THEN
+        -- Notificación a administradores (SuperAdmin y Administrador)
+        FOR admin_id IN 
+            SELECT id FROM public.usuarios 
+            WHERE rol IN ('SuperAdmin'::tipo_rol, 'Administrador'::tipo_rol) 
+            AND activo = true
+        LOOP
+            INSERT INTO public.notificaciones (usuario_id, titulo, mensaje, tipo, relacion_id)
+            VALUES (admin_id, 'Reparación Finalizada', 
+                    'La reparación de la máquina ' || maquina_nombre || ' para el cliente ' || cliente_nombre || ' ha sido finalizada exitosamente.',
+                    'reparacion_finalizada', NEW.id);
+        END LOOP;
+        
+        -- Notificación al técnico
+        IF NEW.tecnico_asignado_id IS NOT NULL THEN
+            INSERT INTO public.notificaciones (usuario_id, titulo, mensaje, tipo, relacion_id)
+            VALUES (NEW.tecnico_asignado_id, 'Reparación Finalizada', 
+                    'La reparación de la máquina ' || maquina_nombre || ' ha sido finalizada y aceptada por el cliente.',
+                    'reparacion_finalizada', NEW.id);
+        END IF;
+    END IF;
+    
+    RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+CREATE TRIGGER trigger_notificaciones_solicitudes
+    AFTER INSERT OR UPDATE ON public.solicitudes_reparacion
+    FOR EACH ROW
+    EXECUTE FUNCTION crear_notificacion_automatica();
+
+-- 10. Función para obtener máquinas asignadas a un cliente
+CREATE OR REPLACE FUNCTION obtener_maquinas_cliente(p_cliente_id bigint)
+RETURNS TABLE(
+    maquina_id bigint,
+    nombre_maquina text,
+    tipo_maquina text,
+    estado_maquina estado_maquina,
+    fecha_asignacion timestamp with time zone
+) AS $$
+BEGIN
+    RETURN QUERY
+    SELECT 
+        m.id,
+        m.nombre,
+        m.tipo,
+        m.estado,
+        mc.fecha_asignacion
+    FROM public.maquinas m
+    INNER JOIN public.maquinas_cliente mc ON m.id = mc.maquina_id
+    WHERE mc.cliente_id = p_cliente_id
+    AND mc.estado != 'Fuera de Servicio'; -- Excluir máquinas ya fuera de servicio
+END;
+$$ LANGUAGE plpgsql;
+
+-- 11. Función para obtener solicitudes por usuario
+CREATE OR REPLACE FUNCTION obtener_solicitudes_usuario(p_usuario_id bigint, p_rol tipo_rol)
+RETURNS TABLE(
+    solicitud_id bigint,
+    maquina_nombre text,
+    descripcion_falla text,
+    gravedad gravedad_falla,
+    estado_sol estado_solicitud,
+    tecnico_nombre text,
+    fecha_hora_reparacion timestamp with time zone,
+    fecha_creacion timestamp with time zone
+) AS $$
+BEGIN
+    IF p_rol = 'Cliente'::tipo_rol THEN
+        RETURN QUERY
+        SELECT 
+            sr.id,
+            m.nombre,
+            sr.descripcion_falla,
+            sr.gravedad,
+            sr.estado,
+            u.nombre_usuario,
+            sr.fecha_hora_reparacion,
+            sr.fecha_creacion
+        FROM public.solicitudes_reparacion sr
+        INNER JOIN public.maquinas m ON sr.maquina_id = m.id
+        LEFT JOIN public.usuarios u ON sr.tecnico_asignado_id = u.id
+        WHERE sr.cliente_id = p_usuario_id
+        ORDER BY sr.fecha_creacion DESC;
+        
+    ELSIF p_rol = 'Tecnico'::tipo_rol THEN
+        RETURN QUERY
+        SELECT 
+            sr.id,
+            m.nombre,
+            sr.descripcion_falla,
+            sr.gravedad,
+            sr.estado,
+            u.nombre_usuario,
+            sr.fecha_hora_reparacion,
+            sr.fecha_creacion
+        FROM public.solicitudes_reparacion sr
+        INNER JOIN public.maquinas m ON sr.maquina_id = m.id
+        LEFT JOIN public.usuarios u ON sr.tecnico_asignado_id = u.id
+        WHERE sr.tecnico_asignado_id = p_usuario_id
+        ORDER BY sr.fecha_creacion DESC;
+        
+    ELSE -- Administrador o SuperAdmin
+        RETURN QUERY
+        SELECT 
+            sr.id,
+            m.nombre,
+            sr.descripcion_falla,
+            sr.gravedad,
+            sr.estado,
+            u.nombre_usuario,
+            sr.fecha_hora_reparacion,
+            sr.fecha_creacion
+        FROM public.solicitudes_reparacion sr
+        INNER JOIN public.maquinas m ON sr.maquina_id = m.id
+        LEFT JOIN public.usuarios u ON sr.tecnico_asignado_id = u.id
+        ORDER BY sr.fecha_creacion DESC;
+    END IF;
+END;
+$$ LANGUAGE plpgsql;
+
+-- 12. Función para obtener técnicos activos
+CREATE OR REPLACE FUNCTION obtener_tecnicos_activos()
+RETURNS TABLE(
+    tecnico_id bigint,
+    nombre_tecnico text,
+    correo_tecnico text
+) AS $$
+BEGIN
+    RETURN QUERY
+    SELECT 
+        u.id,
+        u.nombre_usuario,
+        u.correo
+    FROM public.usuarios u
+    WHERE u.rol = 'Tecnico'::tipo_rol 
+    AND u.activo = true
+    ORDER BY u.nombre_usuario;
+END;
+$$ LANGUAGE plpgsql;
+
+-- 13. Función para asignar técnico a solicitud
+CREATE OR REPLACE FUNCTION asignar_tecnico_solicitud(
+    p_solicitud_id bigint,
+    p_tecnico_id bigint,
+    p_fecha_hora_reparacion timestamp with time zone
+)
+RETURNS void AS $$
+BEGIN
+    UPDATE public.solicitudes_reparacion 
+    SET 
+        tecnico_asignado_id = p_tecnico_id,
+        fecha_hora_reparacion = p_fecha_hora_reparacion,
+        estado = 'tecnico_asignado'::estado_solicitud,
+        fecha_actualizacion = NOW()
+    WHERE id = p_solicitud_id;
+END;
+$$ LANGUAGE plpgsql;
+
+-- 14. Función para que el técnico marque reparación como terminada
+CREATE OR REPLACE FUNCTION marcar_reparacion_terminada(
+    p_solicitud_id bigint,
+    p_observaciones_tecnico text
+)
+RETURNS void AS $$
+BEGIN
+    UPDATE public.solicitudes_reparacion 
+    SET 
+        estado = 'prefinalizada'::estado_solicitud,
+        observaciones_tecnico = p_observaciones_tecnico,
+        fecha_reparacion_terminada = NOW(),
+        fecha_actualizacion = NOW()
+    WHERE id = p_solicitud_id;
+END;
+$$ LANGUAGE plpgsql;
+
+-- 15. Función para que el cliente finalice la solicitud
+CREATE OR REPLACE FUNCTION finalizar_solicitud_cliente(p_solicitud_id bigint)
+RETURNS void AS $$
+BEGIN
+    UPDATE public.solicitudes_reparacion 
+    SET 
+        estado = 'finalizada'::estado_solicitud,
+        fecha_finalizada = NOW(),
+        fecha_actualizacion = NOW()
+    WHERE id = p_solicitud_id;
+END;
+$$ LANGUAGE plpgsql;
+
+-- 16. Función para agregar repuestos utilizados
+CREATE OR REPLACE FUNCTION agregar_repuesto_utilizado(
+    p_solicitud_id bigint,
+    p_repuesto_id bigint,
+    p_cantidad_utilizada integer
+)
+RETURNS void AS $$
+BEGIN
+    INSERT INTO public.repuestos_utilizados (solicitud_id, repuesto_id, cantidad_utilizada)
+    VALUES (p_solicitud_id, p_repuesto_id, p_cantidad_utilizada);
+END;
+$$ LANGUAGE plpgsql;
+
+-- 17. Vista para el historial de reparaciones
+CREATE OR REPLACE VIEW historial_reparaciones AS
+SELECT 
+    sr.id as solicitud_id,
+    m.nombre as maquina_nombre,
+    m.tipo as maquina_tipo,
+    c.nombre_usuario as cliente_nombre,
+    c.correo as cliente_correo,
+    t.nombre_usuario as tecnico_nombre,
+    t.correo as tecnico_correo,
+    sr.descripcion_falla,
+    sr.gravedad,
+    sr.estado,
+    sr.fecha_hora_reparacion,
+    sr.fecha_creacion,
+    sr.fecha_reparacion_terminada,
+    sr.fecha_finalizada,
+    sr.observaciones_tecnico,
+    COUNT(ru.id) as cantidad_repuestos_utilizados,
+    SUM(ru.cantidad_utilizada) as total_repuestos_utilizados
+FROM public.solicitudes_reparacion sr
+INNER JOIN public.maquinas m ON sr.maquina_id = m.id
+INNER JOIN public.usuarios c ON sr.cliente_id = c.id
+LEFT JOIN public.usuarios t ON sr.tecnico_asignado_id = t.id
+LEFT JOIN public.repuestos_utilizados ru ON sr.id = ru.solicitud_id
+GROUP BY 
+    sr.id, m.nombre, m.tipo, c.nombre_usuario, c.correo, 
+    t.nombre_usuario, t.correo, sr.descripcion_falla, sr.gravedad, 
+    sr.estado, sr.fecha_hora_reparacion, sr.fecha_creacion, 
+    sr.fecha_reparacion_terminada, sr.fecha_finalizada, 
+    sr.observaciones_tecnico;
+
+-- 18. Vista para ver detalles de repuestos utilizados por solicitud
+CREATE OR REPLACE VIEW detalle_repuestos_utilizados AS
+SELECT 
+    ru.solicitud_id,
+    sr.descripcion_falla,
+    m.nombre as maquina_nombre,
+    r.nombre as repuesto_nombre,
+    ru.cantidad_utilizada,
+    ru.fecha_uso,
+    r.proveedor_id,
+    p.nombre as proveedor_nombre
+FROM public.repuestos_utilizados ru
+INNER JOIN public.solicitudes_reparacion sr ON ru.solicitud_id = sr.id
+INNER JOIN public.maquinas m ON sr.maquina_id = m.id
+INNER JOIN public.repuestos r ON ru.repuesto_id = r.id
+LEFT JOIN public.proveedores p ON r.proveedor_id = p.id
+ORDER BY ru.fecha_uso DESC;
+
+-- 19. Comentarios para documentación
+COMMENT ON TABLE public.solicitudes_reparacion IS 'Tabla principal para gestionar las solicitudes de reparación de máquinas';
+COMMENT ON COLUMN public.solicitudes_reparacion.estado IS 'Estados: pendiente, tecnico_asignado, prefinalizada, finalizada';
+COMMENT ON COLUMN public.solicitudes_reparacion.gravedad IS 'Gravedad de la falla: leve, moderada, grave';
+
+COMMENT ON TABLE public.repuestos_utilizados IS 'Registro de repuestos utilizados en cada reparación';
+COMMENT ON TABLE public.notificaciones IS 'Sistema de notificaciones internas para los usuarios';
+
+COMMENT ON FUNCTION public.obtener_maquinas_cliente IS 'Obtiene las máquinas asignadas a un cliente específico';
+COMMENT ON FUNCTION public.obtener_solicitudes_usuario IS 'Obtiene las solicitudes filtradas por rol de usuario';
+COMMENT ON FUNCTION public.obtener_tecnicos_activos IS 'Obtiene la lista de técnicos activos para asignar solicitudes';
+COMMENT ON FUNCTION public.asignar_tecnico_solicitud IS 'Asigna un técnico y fecha de reparación a una solicitud';
+COMMENT ON FUNCTION public.marcar_reparacion_terminada IS 'Marca una reparación como terminada por el técnico';
+COMMENT ON FUNCTION public.finalizar_solicitud_cliente IS 'Finaliza la solicitud después de que el cliente verifica la reparación';
+COMMENT ON FUNCTION public.agregar_repuesto_utilizado IS 'Agrega un repuesto utilizado en una reparación';
+
+
+
+
+
+
+-----------
+--------
+-- Primero, elimina el trigger existente
+DROP TRIGGER IF EXISTS trigger_notificaciones_solicitudes ON public.solicitudes_reparacion;
+
+-- Función mejorada para manejar notificaciones
+CREATE OR REPLACE FUNCTION crear_notificacion_automatica()
+RETURNS TRIGGER AS $$
+DECLARE
+    admin_id bigint;
+    cliente_email text;
+    tecnico_email text;
+    admin_email text;
+    maquina_nombre text;
+    cliente_nombre text;
+    tecnico_nombre text;
+BEGIN
+    -- Obtener información adicional
+    SELECT nombre INTO maquina_nombre FROM public.maquinas WHERE id = NEW.maquina_id;
+    SELECT nombre_usuario, correo INTO cliente_nombre, cliente_email FROM public.usuarios WHERE id = NEW.cliente_id;
+    
+    -- Notificación para el cliente cuando se crea la solicitud
+    IF TG_OP = 'INSERT' THEN
+        -- Insertar notificación para el cliente
+        INSERT INTO public.notificaciones (usuario_id, titulo, mensaje, tipo, relacion_id)
+        VALUES (NEW.cliente_id, 'Solicitud de Reparación Creada', 
+                'Se ha creado su solicitud de reparación para la máquina ' || maquina_nombre || '. Estado: Pendiente',
+                'solicitud_creada', NEW.id);
+                
+        -- Notificación para administradores (SuperAdmin y Administrador)
+        FOR admin_id IN 
+            SELECT id FROM public.usuarios 
+            WHERE rol IN ('SuperAdmin', 'Administrador') 
+            AND activo = true
+        LOOP
+            INSERT INTO public.notificaciones (usuario_id, titulo, mensaje, tipo, relacion_id)
+            VALUES (admin_id, 'Nueva Solicitud de Reparación', 
+                    'El cliente ' || cliente_nombre || ' ha reportado una falla en la máquina ' || maquina_nombre || '. Gravedad: ' || NEW.gravedad,
+                    'nueva_solicitud', NEW.id);
+        END LOOP;
+    END IF;
+    
+    -- Notificación cuando se asigna técnico
+    IF TG_OP = 'UPDATE' AND NEW.tecnico_asignado_id IS NOT NULL AND OLD.tecnico_asignado_id IS NULL THEN
+        SELECT nombre_usuario, correo INTO tecnico_nombre, tecnico_email FROM public.usuarios WHERE id = NEW.tecnico_asignado_id;
+        
+        -- Notificación al cliente
+        INSERT INTO public.notificaciones (usuario_id, titulo, mensaje, tipo, relacion_id)
+        VALUES (NEW.cliente_id, 'Técnico Asignado', 
+                'Se ha asignado el técnico ' || tecnico_nombre || ' para reparar su máquina ' || maquina_nombre || '. Fecha: ' || TO_CHAR(NEW.fecha_hora_reparacion, 'DD/MM/YYYY HH24:MI'),
+                'tecnico_asignado', NEW.id);
+                
+        -- Notificación al técnico
+        INSERT INTO public.notificaciones (usuario_id, titulo, mensaje, tipo, relacion_id)
+        VALUES (NEW.tecnico_asignado_id, 'Nueva Orden de Trabajo Asignada', 
+                'Se le ha asignado la reparación de la máquina ' || maquina_nombre || ' del cliente ' || cliente_nombre || '. Fecha: ' || TO_CHAR(NEW.fecha_hora_reparacion, 'DD/MM/YYYY HH24:MI'),
+                'orden_trabajo', NEW.id);
+    END IF;
+    
+    -- Notificación cuando la reparación está prefinalizada
+    IF TG_OP = 'UPDATE' AND NEW.estado = 'prefinalizada' AND OLD.estado != 'prefinalizada' THEN
+        INSERT INTO public.notificaciones (usuario_id, titulo, mensaje, tipo, relacion_id)
+        VALUES (NEW.cliente_id, 'Reparación Completada', 
+                'El técnico ha completado la reparación de su máquina ' || maquina_nombre || '. Por favor verifique el funcionamiento.',
+                'reparacion_completada', NEW.id);
+    END IF;
+    
+    -- Notificación cuando la reparación está finalizada
+    IF TG_OP = 'UPDATE' AND NEW.estado = 'finalizada' AND OLD.estado != 'finalizada' THEN
+        -- Notificación a administradores (SuperAdmin y Administrador)
+        FOR admin_id IN 
+            SELECT id FROM public.usuarios 
+            WHERE rol IN ('SuperAdmin', 'Administrador') 
+            AND activo = true
+        LOOP
+            INSERT INTO public.notificaciones (usuario_id, titulo, mensaje, tipo, relacion_id)
+            VALUES (admin_id, 'Reparación Finalizada', 
+                    'La reparación de la máquina ' || maquina_nombre || ' para el cliente ' || cliente_nombre || ' ha sido finalizada exitosamente.',
+                    'reparacion_finalizada', NEW.id);
+        END LOOP;
+        
+        -- Notificación al técnico
+        IF NEW.tecnico_asignado_id IS NOT NULL THEN
+            INSERT INTO public.notificaciones (usuario_id, titulo, mensaje, tipo, relacion_id)
+            VALUES (NEW.tecnico_asignado_id, 'Reparación Finalizada', 
+                    'La reparación de la máquina ' || maquina_nombre || ' ha sido finalizada y aceptada por el cliente.',
+                    'reparacion_finalizada', NEW.id);
+        END IF;
+    END IF;
+    
+    RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+-- Recrear el trigger
+CREATE TRIGGER trigger_notificaciones_solicitudes
+    AFTER INSERT OR UPDATE ON public.solicitudes_reparacion
+    FOR EACH ROW
+    EXECUTE FUNCTION crear_notificacion_automatica();

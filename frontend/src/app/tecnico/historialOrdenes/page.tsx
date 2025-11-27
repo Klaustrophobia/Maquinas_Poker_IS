@@ -281,21 +281,6 @@ export default function HistorialOrdenesPage() {
           </div>
           
           <div className="flex items-center gap-3">
-            <button
-              onClick={exportarHistorial}
-              className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors font-bold flex items-center gap-2"
-            >
-              <Download className="w-4 h-4" />
-              Exportar
-            </button>
-            
-            <button
-              onClick={() => setMostrarFiltros(!mostrarFiltros)}
-              className="px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors font-bold flex items-center gap-2"
-            >
-              <Filter className="w-4 h-4" />
-              Filtros
-            </button>
             
             <div className="relative">
               <Search className="w-5 h-5 text-gray-400 absolute left-3 top-2.5" />
