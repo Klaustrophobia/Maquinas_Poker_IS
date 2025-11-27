@@ -71,14 +71,13 @@ export default function DashboardPage() {
     setError(null);
     
     try {
+      // ENDPOINT CORREGIDO - usar el correcto
       const response = await fetch(
-        `${backendUrl}/api/SolicitudReparacion/tecnicos/${usuario.id}`,
+        `${backendUrl}/api/SolicitudReparacion/tecnico/${usuario.id}`, // ← SIN "s" en "tecnico"
         {
           method: 'GET',
           headers: {
             'Content-Type': 'application/json',
-            // Si tu backend requiere autenticación, agrega el token aquí:
-            // 'Authorization': `Bearer ${token}`
           },
         }
       );
@@ -89,33 +88,47 @@ export default function DashboardPage() {
 
       const data = await response.json();
       
+      console.log('Respuesta de órdenes:', data);
+      
+      // La respuesta probablemente tiene una propiedad 'data' con el array
+      const ordenesData = data.data || data;
+      
+      if (!Array.isArray(ordenesData)) {
+        console.warn('La respuesta no es un array:', ordenesData);
+        setOrdenesTrabajo([]);
+        return;
+      }
+      
       // Mapear los datos de la API a la estructura de OrdenTrabajo
-      const ordenesFormateadas: OrdenTrabajo[] = data.map((orden: any) => ({
-        id: orden.id || orden.solicitudId,
-        numero: orden.numero || `OT-${orden.id}`,
-        cliente: orden.clienteNombre || orden.cliente || "Cliente no especificado",
-        maquina: orden.maquinaNombre || orden.maquina || "Máquina no especificada",
-        fecha: orden.fechaSolicitud || orden.fecha || new Date().toISOString().split('T')[0],
-        estado: orden.estado || "Pendiente",
-        prioridad: orden.prioridad || "Media",
-        descripcion: orden.descripcion || orden.observaciones || "Sin descripción"
+      const ordenesFormateadas: OrdenTrabajo[] = ordenesData.map((orden: any) => ({
+        id: orden.id,
+        numero: `SR-${orden.id}`,
+        cliente: orden.cliente?.nombre_usuario || orden.cliente_nombre || "Cliente no especificado",
+        maquina: orden.maquina?.nombre || orden.maquina_nombre || "Máquina no especificada",
+        fecha: orden.fecha_creacion ? new Date(orden.fecha_creacion).toISOString().split('T')[0] : new Date().toISOString().split('T')[0],
+        estado: orden.estado || "pendiente",
+        prioridad: orden.gravedad || "Media",
+        descripcion: orden.descripcion_falla || "Sin descripción"
       }));
 
       setOrdenesTrabajo(ordenesFormateadas);
       
-      // Calcular estadísticas
+      // Calcular estadísticas basadas en los estados reales
       const activas = ordenesFormateadas.filter(o => 
-        o.estado === "En proceso" || o.estado === "Asignada"
+        o.estado === "tecnico_asignado" || o.estado === "prefinalizada"
       ).length;
       const pendientes = ordenesFormateadas.filter(o => 
-        o.estado === "Pendiente"
+        o.estado === "pendiente"
+      ).length;
+      const completadas = ordenesFormateadas.filter(o => 
+        o.estado === "finalizada"
       ).length;
       
-      setStats(prev => ({ 
-        ...prev, 
+      setStats({ 
         ordenesActivas: activas,
-        ordenesPendientes: pendientes 
-      }));
+        ordenesPendientes: pendientes,
+        ordenesCompletadas: completadas
+      });
       
     } catch (error) {
       console.error("Error al obtener órdenes de trabajo:", error);
@@ -131,14 +144,13 @@ export default function DashboardPage() {
     setError(null);
     
     try {
+      // USAR EL MISMO ENDPOINT CORREGIDO
       const response = await fetch(
-        `${backendUrl}/api/notificaciones/reparacion-finalizada`,
+        `${backendUrl}/api/SolicitudReparacion/tecnico/${usuario?.id}`, // ← SIN "s" en "tecnico"
         {
           method: 'GET',
           headers: {
             'Content-Type': 'application/json',
-            // Si tu backend requiere autenticación, agrega el token aquí:
-            // 'Authorization': `Bearer ${token}`
           },
         }
       );
@@ -149,24 +161,32 @@ export default function DashboardPage() {
 
       const data = await response.json();
       
+      const ordenesData = data.data || data;
+      
+      if (!Array.isArray(ordenesData)) {
+        console.warn('La respuesta no es un array:', ordenesData);
+        setHistorialOrdenes([]);
+        return;
+      }
+      
+      // Filtrar solo las órdenes finalizadas para el historial
+      const ordenesFinalizadas = ordenesData.filter((orden: any) => 
+        orden.estado === "finalizada"
+      );
+      
       // Mapear los datos de la API a la estructura de HistorialOrden
-      const historialFormateado: HistorialOrden[] = data.map((orden: any) => ({
-        id: orden.id || orden.reparacionId,
-        numero: orden.numero || `OT-${orden.id}`,
-        cliente: orden.clienteNombre || orden.cliente || "Cliente no especificado",
-        maquina: orden.maquinaNombre || orden.maquina || "Máquina no especificada",
-        fecha: orden.fechaInicio || orden.fecha || new Date().toISOString().split('T')[0],
-        fechaCompletado: orden.fechaFinalizacion || orden.fechaCompletado || new Date().toISOString().split('T')[0],
+      const historialFormateado: HistorialOrden[] = ordenesFinalizadas.map((orden: any) => ({
+        id: orden.id,
+        numero: `SR-${orden.id}`,
+        cliente: orden.cliente?.nombre_usuario || orden.cliente_nombre || "Cliente no especificado",
+        maquina: orden.maquina?.nombre || orden.maquina_nombre || "Máquina no especificada",
+        fecha: orden.fecha_creacion ? new Date(orden.fecha_creacion).toISOString().split('T')[0] : new Date().toISOString().split('T')[0],
+        fechaCompletado: orden.fecha_finalizada ? new Date(orden.fecha_finalizada).toISOString().split('T')[0] : new Date().toISOString().split('T')[0],
         estado: "Completada",
-        observaciones: orden.observaciones || orden.descripcion || "Sin observaciones"
+        observaciones: orden.observaciones_tecnico || "Sin observaciones"
       }));
 
       setHistorialOrdenes(historialFormateado);
-      
-      setStats(prev => ({ 
-        ...prev, 
-        ordenesCompletadas: historialFormateado.length 
-      }));
       
     } catch (error) {
       console.error("Error al obtener historial de órdenes:", error);
@@ -177,19 +197,35 @@ export default function DashboardPage() {
     }
   };
 
+  // Función para reintentar la carga
+  const reintentarCarga = () => {
+    setError(null);
+    fetchOrdenesTrabajo();
+    fetchHistorialOrdenes();
+  };
+
   return (
     <div className="space-y-8">
       {/* Mensaje de error */}
       {error && (
         <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg">
-          <p className="font-semibold">Error:</p>
-          <p className="text-sm">{error}</p>
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="font-semibold">Error:</p>
+              <p className="text-sm">{error}</p>
+            </div>
+            <button 
+              onClick={reintentarCarga}
+              className="px-3 py-1 bg-red-100 text-red-700 rounded text-sm hover:bg-red-200 transition-colors"
+            >
+              Reintentar
+            </button>
+          </div>
         </div>
       )}
 
       {/* Encabezado con fondo decorativo */}
       <div className="bg-gradient-to-br from-white to-amber-50/30 rounded-2xl shadow-lg border border-amber-100/50 p-8 relative overflow-hidden">
-        {/* Elementos decorativos de fondo */}
         <div className="absolute top-0 right-0 w-24 h-24 bg-gradient-to-bl from-amber-500/10 to-amber-600/10 rounded-full -translate-y-8 translate-x-8"></div>
         <div className="absolute bottom-0 left-0 w-20 h-20 bg-gradient-to-tr from-yellow-500/10 to-amber-600/10 rounded-full translate-y-8 -translate-x-8"></div>
         
@@ -206,9 +242,27 @@ export default function DashboardPage() {
           {/* Estadísticas rápidas */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             {[
-              { title: "Órdenes Activas", value: loadingOrdenes ? "..." : stats.ordenesActivas, bgColor: "bg-amber-100", textColor: "text-amber-600", icon: Wrench },
-              { title: "Órdenes Pendientes", value: loadingOrdenes ? "..." : stats.ordenesPendientes, bgColor: "bg-amber-100", textColor: "text-amber-600", icon: Clock },
-              { title: "Órdenes Completadas", value: loadingHistorial ? "..." : stats.ordenesCompletadas, bgColor: "bg-amber-100", textColor: "text-amber-600", icon: ClipboardList },
+              { 
+                title: "Órdenes Activas", 
+                value: loadingOrdenes ? "..." : stats.ordenesActivas, 
+                bgColor: "bg-amber-100", 
+                textColor: "text-amber-600", 
+                icon: Wrench 
+              },
+              { 
+                title: "Órdenes Pendientes", 
+                value: loadingOrdenes ? "..." : stats.ordenesPendientes, 
+                bgColor: "bg-blue-100", 
+                textColor: "text-blue-600", 
+                icon: Clock 
+              },
+              { 
+                title: "Órdenes Completadas", 
+                value: loadingHistorial ? "..." : stats.ordenesCompletadas, 
+                bgColor: "bg-green-100", 
+                textColor: "text-green-600", 
+                icon: ClipboardList 
+              },
             ].map((card, index) => {
               const IconComponent = card.icon;
               return (
@@ -231,7 +285,6 @@ export default function DashboardPage() {
 
       {/* Accesos Rápidos */}
       <div className="bg-gradient-to-br from-white to-amber-50/30 rounded-2xl shadow-lg border border-amber-100/50 p-6 relative overflow-hidden">
-        {/* Elementos decorativos de fondo */}
         <div className="absolute top-0 right-0 w-16 h-16 bg-gradient-to-bl from-amber-500/10 to-amber-600/10 rounded-full -translate-y-4 translate-x-4"></div>
         <div className="absolute bottom-0 left-0 w-12 h-12 bg-gradient-to-tr from-yellow-500/10 to-amber-600/10 rounded-full translate-y-4 -translate-x-4"></div>
         
@@ -239,8 +292,18 @@ export default function DashboardPage() {
           <h3 className="text-xl font-bold text-gray-900 mb-4">Accesos Rápidos</h3>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {[
-              { title: "Ver Órdenes", desc: "Consulta tus órdenes de trabajo actuales", icon: Wrench, action: () => router.push("/tecnico/ordenesTrabajo") },
-              { title: "Ver Historial", desc: "Revisa el historial de trabajos completados", icon: ClipboardList, action: () => router.push("/tecnico/historialOrdenes") },
+              { 
+                title: "Ver Órdenes", 
+                desc: "Consulta tus órdenes de trabajo actuales", 
+                icon: Wrench, 
+                action: () => router.push("/tecnico/ordenesTrabajo") 
+              },
+              { 
+                title: "Ver Historial", 
+                desc: "Revisa el historial de trabajos completados", 
+                icon: ClipboardList, 
+                action: () => router.push("/tecnico/historialOrdenes") 
+              },
             ].map((action, index) => {
               const IconComponent = action.icon;
               return (
@@ -269,7 +332,6 @@ export default function DashboardPage() {
 
       {/* Actividad Reciente */}
       <div className="bg-gradient-to-br from-white to-amber-50/30 rounded-2xl shadow-lg border border-amber-100/50 p-6 relative overflow-hidden">
-        {/* Elementos decorativos de fondo */}
         <div className="absolute top-0 right-0 w-16 h-16 bg-gradient-to-bl from-amber-500/10 to-amber-600/10 rounded-full -translate-y-4 translate-x-4"></div>
         <div className="absolute bottom-0 left-0 w-12 h-12 bg-gradient-to-tr from-yellow-500/10 to-amber-600/10 rounded-full translate-y-4 -translate-x-4"></div>
 
@@ -285,7 +347,7 @@ export default function DashboardPage() {
             <div className="space-y-4">
               {/* Mostrar últimas órdenes completadas */}
               {historialOrdenes.slice(0, 2).map((orden, index) => (
-                <div key={`hist-${index}`} className="flex items-center justify-between p-4 bg-gradient-to-r from-amber-50 to-yellow-50 rounded-lg">
+                <div key={`hist-${index}`} className="flex items-center justify-between p-4 bg-gradient-to-r from-green-50 to-emerald-50 rounded-lg border border-green-100">
                   <div className="flex items-center gap-3">
                     <span className="text-2xl">✅</span>
                     <div>
@@ -298,13 +360,13 @@ export default function DashboardPage() {
               ))}
               
               {/* Mostrar última orden activa */}
-              {ordenesTrabajo.slice(0, 1).map((orden, index) => (
-                <div key={`orden-${index}`} className="flex items-center justify-between p-4 bg-gradient-to-r from-amber-50 to-yellow-50 rounded-lg">
+              {ordenesTrabajo.filter(o => o.estado !== "finalizada").slice(0, 1).map((orden, index) => (
+                <div key={`orden-${index}`} className="flex items-center justify-between p-4 bg-gradient-to-r from-amber-50 to-yellow-50 rounded-lg border border-amber-100">
                   <div className="flex items-center gap-3">
                     <span className="text-2xl">⚙️</span>
                     <div>
                       <p className="font-semibold text-gray-800">
-                        {orden.estado === "Pendiente" ? "Nueva orden asignada" : "Orden en proceso"}
+                        {orden.estado === "pendiente" ? "Nueva orden asignada" : "Orden en proceso"}
                       </p>
                       <p className="text-sm text-gray-600">{orden.numero} - {orden.maquina}</p>
                     </div>

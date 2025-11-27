@@ -1,23 +1,34 @@
-FROM node:20-alpine
+FROM node:22-alpine AS base
 
+FROM base AS deps
 WORKDIR /app
 
-# Copiar archivos de configuración
-COPY package*.json ./
-COPY tsconfig.json ./
-COPY next.config.ts ./
-
-# Instalar dependencias
+COPY package.json package-lock.json* ./
 RUN npm ci
 
-# Copiar el código fuente
-COPY . .
+FROM base AS builder
+WORKDIR /app
 
-# Construir la aplicación
+COPY . .
+COPY --from=deps /app/node_modules ./node_modules
 RUN npm run build
 
-# Exponer el puerto 3001
+FROM base AS runner
+WORKDIR /app
+
+ENV NODE_ENV=production
+
+# Crear usuario no-root
+RUN addgroup -g 1001 -S nodejs
+RUN adduser -S nextjs -u 1001
+
+COPY --from=builder --chown=nextjs:nodejs /app/public ./public
+COPY --from=builder --chown=nextjs:nodejs /app/.next ./.next
+COPY --from=builder --chown=nextjs:nodejs /app/node_modules ./node_modules
+COPY --from=builder --chown=nextjs:nodejs /app/package.json ./package.json
+
+USER nextjs
+
 EXPOSE 3001
 
-# Comando para iniciar la aplicación en puerto 3001
-CMD ["npm", "start"]
+CMD ["npm", "run", "start"]

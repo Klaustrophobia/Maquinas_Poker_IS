@@ -1,54 +1,77 @@
 services:
-  database:
-    image: postgres:15
-    container_name: poker_database  # ← en minúsculas
+  db:
+    image: postgres:16
+    container_name: db
+    restart: unless-stopped
     environment:
-      POSTGRES_DB: Maquinas_Poker
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: oracle
+      POSTGRES_DB: Maquinas_Poker
+      POSTGRES_INITDB_ARGS: "--encoding=UTF8 --locale=C"
     ports:
-      - "5432:5432"
+      - "5433:5432"
     volumes:
-      - ./database/data:/var/lib/postgresql/data
-      - ./database/init.sql:/docker-entrypoint-initdb.d/init.sql
+      - postgres_data:/var/lib/postgresql/data
+      - ./db/init.sql:/docker-entrypoint-initdb.d/init.sql
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U postgres -d Maquinas_Poker"]
-      interval: 5s
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 30s
       timeout: 10s
-      retries: 10
+      retries: 3
 
   backend:
-    build:
+    build: 
       context: ./backend
       dockerfile: Dockerfile
-    container_name: poker_backend
+    container_name: backend
+    ports:
+      - "3000:3000"
     environment:
-      DB_HOST: poker_database  # ← CORREGIDO: minúsculas
+      # Base de datos
+      DB_HOST: db
       DB_PORT: 5432
       DB_USER: postgres
       DB_PASS: oracle
       DB_NAME: Maquinas_Poker
+      DATABASE_URL: postgresql://postgres:oracle@db:5432/Maquinas_Poker
+      
+      # JWT
+      JWT_SECRET: una_clave_super_segura_y_larga_que_nadie_mas_sepa
+      
+      # Email - CON CREDENCIALES REALES
+      MAIL_USER: annymo1996@gmail.com
+      MAIL_PASS: lpkv nyds yzwo lgsb
+      MAIL_SERVICE: gmail
+      MAIL_FROM: "Maquinas de Poker <annymo1996@gmail.com>"
+      MAIL_MODE: normal
+      
       NODE_ENV: production
-      PORT: 3000
-    ports:
-      - "3000:3000"
     depends_on:
-      database:
+      db:
         condition: service_healthy
-    restart: unless-stopped
-    command: sh -c "sleep 20 && npm start"
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:3000/api/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
 
   frontend:
-    build:
+    build: 
       context: ./frontend
       dockerfile: Dockerfile
-    container_name: poker_frontend
-    environment:
-      NEXT_PUBLIC_API_URL: http://localhost:3000
-      PORT: 3001
+    container_name: frontend
     ports:
       - "3001:3001"
+    environment:
+      NEXT_PUBLIC_BACKEND_URL: http://backend:3000
+      NODE_ENV: production
     depends_on:
-      - backend
-    restart: unless-stopped
-    command: sh -c "sleep 25 && npm start"
+      backend:
+        condition: service_healthy
+
+volumes:
+  postgres_data:
+
+networks:
+  default:
+    name: maquinas_poker_network

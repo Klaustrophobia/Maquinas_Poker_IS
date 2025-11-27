@@ -7,17 +7,19 @@ export class RepuestoUtilizado {
   @PrimaryGeneratedColumn("increment")
   id!: number;
 
-  @ManyToOne(() => SolicitudReparacion, solicitud => solicitud.repuestos_utilizados)
+  // Relación unidireccional para evitar problemas
+  @ManyToOne(() => SolicitudReparacion)
   @JoinColumn({ name: "solicitud_id" })
   solicitud!: SolicitudReparacion;
 
+  // Relación unidireccional
   @ManyToOne(() => Repuesto)
   @JoinColumn({ name: "repuesto_id" })
   repuesto!: Repuesto;
 
-  @Column({ type: "int", nullable: false })
+  @Column({ type: "int", name: "cantidad_utilizada", nullable: false })
   cantidad_utilizada!: number;
 
-  @Column({ type: "timestamp with time zone", default: () => "now()" })
+  @Column({ type: "timestamp with time zone", name: "fecha_uso", default: () => "now()" })
   fecha_uso!: Date;
 }

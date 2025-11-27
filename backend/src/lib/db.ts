@@ -7,119 +7,66 @@ import { Maquina } from '@/entities/Maquina';
 import { MaquinaCliente } from '@/entities/MaquinaCliente';
 import { Recibo } from '@/entities/Recibo';
 import { LoteRecibo } from '@/entities/LoteRecibo';
+import { RepuestoUtilizado } from '@/entities/RepuestoUtilizado';
 import { SolicitudReparacion } from '@/entities/SolicitudReparacion';
 import { Notificacion } from '@/entities/Notificacion';
-import { RepuestoUtilizado } from '@/entities/RepuestoUtilizado';
 
 export const AppDataSource = new DataSource({
   type: 'postgres',
-  host: process.env.DB_HOST || 'poker_database',
+  host: process.env.DB_HOST || 'db',
   port: Number(process.env.DB_PORT) || 5432,
   username: process.env.DB_USER || 'postgres',
-  password: process.env.DB_PASS || 'oracle',
+  password: process.env.DB_PASS || '1234',
   database: process.env.DB_NAME || 'Maquinas_Poker',
   synchronize: false,
-  entities: [Usuario, Proveedor, Repuesto, Maquina, MaquinaCliente, Recibo, LoteRecibo, SolicitudReparacion, Notificacion, RepuestoUtilizado],
+  entities: [
+    Usuario, 
+    Proveedor, 
+    Repuesto, 
+    Maquina, 
+    MaquinaCliente, 
+    Recibo, 
+    LoteRecibo, 
+    RepuestoUtilizado, 
+    SolicitudReparacion, 
+    Notificacion
+  ],
   logging: ["error", "warn"],
   extra: {
+    max: 20,
     connectionTimeoutMillis: 10000,
-    idleTimeoutMillis: 60000,
   }
 });
 
-// Variables globales para el estado de la conexión
-let connection: DataSource | null = null;
-let initializationPromise: Promise<DataSource> | null = null;
-
-/**
- * Inicializa la conexión a la base de datos de manera segura
- * Evita múltiples inicializaciones simultáneas
- */
-export const initializeDatabase = async (): Promise<DataSource> => {
-  // Si ya está inicializada, retornar la conexión
-  if (connection?.isInitialized) {
-    return connection;
-  }
-
-  // Si hay una inicialización en curso, esperar a que termine
-  if (initializationPromise) {
-    return initializationPromise;
-  }
-
-  // Crear una nueva promesa de inicialización
-  initializationPromise = (async (): Promise<DataSource> => {
+export const initializeDatabase = async () => {
+  if (!AppDataSource.isInitialized) {
     try {
-      console.log('🔄 Inicializando conexión a la base de datos...');
+      console.log('🔧 Intentando conectar a la base de datos...');
+      console.log('📊 Configuración:', {
+        host: process.env.DB_HOST || 'db',
+        port: process.env.DB_PORT || 5432,
+        database: process.env.DB_NAME || 'Maquinas_Poker'
+      });
       
-      if (!connection) {
-        connection = AppDataSource;
-      }
-
-      if (!connection.isInitialized) {
-        await connection.initialize();
-        console.log('✅ Conexión a la base de datos establecida exitosamente');
-      } else {
-        console.log('✅ Usando conexión existente a la base de datos');
-      }
-
-      return connection;
-    } catch (error: any) {
-      console.error('❌ Error inicializando la base de datos:', error.message);
+      await AppDataSource.initialize();
+      console.log('✅ Base de datos conectada correctamente');
       
-      // Manejar el caso de conexión ya establecida
-      if (error.message.includes('already established') || error.message.includes('already initialized')) {
-        console.log('⚠️  La conexión ya estaba establecida, continuando...');
-        return connection!;
-      }
+      // Verificar que las tablas existen
+      const tables = await AppDataSource.query(`
+        SELECT table_name 
+        FROM information_schema.tables 
+        WHERE table_schema = 'public'
+      `);
+      console.log('📋 Tablas disponibles:', tables.map((t: any) => t.table_name));
       
-      // Resetear la promesa para permitir reintentos
-      initializationPromise = null;
+    } catch (error) {
+      console.error('❌ Error al conectar con la base de datos:', error);
       throw error;
-    } finally {
-      // Limpiar la promesa después de un tiempo para permitir reintentos si es necesario
-      setTimeout(() => {
-        initializationPromise = null;
-      }, 5000);
     }
-  })();
-
-  return initializationPromise;
-};
-
-/**
- * Obtiene la conexión a la base de datos
- * Siempre inicializa si no está conectado
- */
-export const getDatabaseConnection = async (): Promise<DataSource> => {
-  return await initializeDatabase();
-};
-
-/**
- * Verifica si la base de datos está conectada
- */
-export const isDatabaseConnected = (): boolean => {
-  return connection?.isInitialized || false;
-};
-
-/**
- * Cierra la conexión a la base de datos
- */
-export const closeDatabaseConnection = async (): Promise<void> => {
-  if (connection?.isInitialized) {
-    await connection.destroy();
-    connection = null;
-    initializationPromise = null;
-    console.log('🔌 Conexión a la base de datos cerrada');
   }
+  return AppDataSource;
 };
 
-// Manejo de cierre graceful
-process.on('SIGINT', async () => {
-  await closeDatabaseConnection();
-  process.exit(0);
-});
-
-process.on('SIGTERM', async () => {
-  await closeDatabaseConnection();
-  process.exit(0);
-});
+export async function getDatabaseConnection() {
+  return await initializeDatabase();
+}
