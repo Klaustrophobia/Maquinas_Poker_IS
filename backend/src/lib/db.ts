@@ -7,6 +7,9 @@ import { Maquina } from '@/entities/Maquina';
 import { MaquinaCliente } from '@/entities/MaquinaCliente';
 import { Recibo } from '@/entities/Recibo';
 import { LoteRecibo } from '@/entities/LoteRecibo';
+import { SolicitudReparacion } from '@/entities/SolicitudReparacion';
+import { Notificacion } from '@/entities/Notificacion';
+import { RepuestoUtilizado } from '@/entities/RepuestoUtilizado';
 
 export const AppDataSource = new DataSource({
   type: 'postgres',
@@ -16,14 +19,13 @@ export const AppDataSource = new DataSource({
   password: process.env.DB_PASS || 'oracle',
   database: process.env.DB_NAME || 'Maquinas_Poker',
   synchronize: false,
-  entities: [Usuario, Proveedor, Repuesto, Maquina, MaquinaCliente, Recibo, LoteRecibo],
-  logging: ["log", "error", "warn"],
+  entities: [Usuario, Proveedor, Repuesto, Maquina, MaquinaCliente, Recibo, LoteRecibo, SolicitudReparacion, Notificacion, RepuestoUtilizado],
+  logging: ["error", "warn"],
 });
 
 export const initializeDatabase = async () => {
   if (!AppDataSource.isInitialized) {
     await AppDataSource.initialize();
-    console.log('Base de datos conectada');
   }
   return AppDataSource;
 };
