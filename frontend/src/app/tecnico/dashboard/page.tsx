@@ -43,6 +43,7 @@ export default function DashboardPage() {
   const [loadingOrdenes, setLoadingOrdenes] = useState(false);
   const [historialOrdenes, setHistorialOrdenes] = useState<HistorialOrden[]>([]);
   const [loadingHistorial, setLoadingHistorial] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   const { usuario } = useAuth();
   const router = useRouter();
@@ -57,105 +58,135 @@ export default function DashboardPage() {
   }, [usuario, router]);
 
   useEffect(() => {
-    fetchOrdenesTrabajo();
-    fetchHistorialOrdenes();
-  }, []);
+    if (usuario?.id) {
+      fetchOrdenesTrabajo();
+      fetchHistorialOrdenes();
+    }
+  }, [usuario]);
 
   const fetchOrdenesTrabajo = async (): Promise<void> => {
+    if (!usuario?.id) return;
+    
     setLoadingOrdenes(true);
+    setError(null);
+    
     try {
-      setTimeout(() => {
-        const ordenesSimuladas: OrdenTrabajo[] = [
-          { 
-            id: 1, 
-            numero: "OT-001", 
-            cliente: "Empresa ABC", 
-            maquina: "Compresor Industrial",
-            fecha: "2025-03-15", 
-            estado: "En proceso",
-            prioridad: "Alta",
-            descripcion: "Falla en el motor principal"
+      const response = await fetch(
+        `${backendUrl}/api/SolicitudReparacion/tecnicos/${usuario.id}`,
+        {
+          method: 'GET',
+          headers: {
+            'Content-Type': 'application/json',
+            // Si tu backend requiere autenticación, agrega el token aquí:
+            // 'Authorization': `Bearer ${token}`
           },
-          { 
-            id: 2, 
-            numero: "OT-002", 
-            cliente: "Industrias XYZ", 
-            maquina: "Generador 500W",
-            fecha: "2025-03-16", 
-            estado: "Pendiente",
-            prioridad: "Media",
-            descripcion: "Revisión de mantenimiento preventivo"
-          },
-          { 
-            id: 3, 
-            numero: "OT-003", 
-            cliente: "Fábrica 123", 
-            maquina: "Soldadora",
-            fecha: "2025-03-14", 
-            estado: "En proceso",
-            prioridad: "Baja",
-            descripcion: "Calibración de equipo"
-          },
-        ];
-        setOrdenesTrabajo(ordenesSimuladas);
-        const activas = ordenesSimuladas.filter(o => o.estado === "En proceso").length;
-        const pendientes = ordenesSimuladas.filter(o => o.estado === "Pendiente").length;
-        setStats(prev => ({ 
-          ...prev, 
-          ordenesActivas: activas,
-          ordenesPendientes: pendientes 
-        }));
-        setLoadingOrdenes(false);
-      }, 500);
+        }
+      );
+
+      if (!response.ok) {
+        throw new Error(`Error: ${response.status} ${response.statusText}`);
+      }
+
+      const data = await response.json();
+      
+      // Mapear los datos de la API a la estructura de OrdenTrabajo
+      const ordenesFormateadas: OrdenTrabajo[] = data.map((orden: any) => ({
+        id: orden.id || orden.solicitudId,
+        numero: orden.numero || `OT-${orden.id}`,
+        cliente: orden.clienteNombre || orden.cliente || "Cliente no especificado",
+        maquina: orden.maquinaNombre || orden.maquina || "Máquina no especificada",
+        fecha: orden.fechaSolicitud || orden.fecha || new Date().toISOString().split('T')[0],
+        estado: orden.estado || "Pendiente",
+        prioridad: orden.prioridad || "Media",
+        descripcion: orden.descripcion || orden.observaciones || "Sin descripción"
+      }));
+
+      setOrdenesTrabajo(ordenesFormateadas);
+      
+      // Calcular estadísticas
+      const activas = ordenesFormateadas.filter(o => 
+        o.estado === "En proceso" || o.estado === "Asignada"
+      ).length;
+      const pendientes = ordenesFormateadas.filter(o => 
+        o.estado === "Pendiente"
+      ).length;
+      
+      setStats(prev => ({ 
+        ...prev, 
+        ordenesActivas: activas,
+        ordenesPendientes: pendientes 
+      }));
+      
     } catch (error) {
-      console.error("Error:", error);
+      console.error("Error al obtener órdenes de trabajo:", error);
+      setError("No se pudieron cargar las órdenes de trabajo");
       setOrdenesTrabajo([]);
+    } finally {
       setLoadingOrdenes(false);
     }
   };
 
   const fetchHistorialOrdenes = async (): Promise<void> => {
     setLoadingHistorial(true);
+    setError(null);
+    
     try {
-      setTimeout(() => {
-        const historialSimulado: HistorialOrden[] = [
-          { 
-            id: 1, 
-            numero: "OT-098", 
-            cliente: "Empresa DEF", 
-            maquina: "Torno CNC",
-            fecha: "2025-03-10", 
-            fechaCompletado: "2025-03-12",
-            estado: "Completada",
-            observaciones: "Trabajo completado satisfactoriamente"
+      const response = await fetch(
+        `${backendUrl}/api/notificaciones/reparacion-finalizada`,
+        {
+          method: 'GET',
+          headers: {
+            'Content-Type': 'application/json',
+            // Si tu backend requiere autenticación, agrega el token aquí:
+            // 'Authorization': `Bearer ${token}`
           },
-          { 
-            id: 2, 
-            numero: "OT-097", 
-            cliente: "Comercial GHI", 
-            maquina: "Prensa Hidráulica",
-            fecha: "2025-03-08", 
-            fechaCompletado: "2025-03-09",
-            estado: "Completada",
-            observaciones: "Reemplazo de sellos hidráulicos"
-          },
-        ];
-        setHistorialOrdenes(historialSimulado);
-        setStats(prev => ({ 
-          ...prev, 
-          ordenesCompletadas: historialSimulado.length 
-        }));
-        setLoadingHistorial(false);
-      }, 500);
+        }
+      );
+
+      if (!response.ok) {
+        throw new Error(`Error: ${response.status} ${response.statusText}`);
+      }
+
+      const data = await response.json();
+      
+      // Mapear los datos de la API a la estructura de HistorialOrden
+      const historialFormateado: HistorialOrden[] = data.map((orden: any) => ({
+        id: orden.id || orden.reparacionId,
+        numero: orden.numero || `OT-${orden.id}`,
+        cliente: orden.clienteNombre || orden.cliente || "Cliente no especificado",
+        maquina: orden.maquinaNombre || orden.maquina || "Máquina no especificada",
+        fecha: orden.fechaInicio || orden.fecha || new Date().toISOString().split('T')[0],
+        fechaCompletado: orden.fechaFinalizacion || orden.fechaCompletado || new Date().toISOString().split('T')[0],
+        estado: "Completada",
+        observaciones: orden.observaciones || orden.descripcion || "Sin observaciones"
+      }));
+
+      setHistorialOrdenes(historialFormateado);
+      
+      setStats(prev => ({ 
+        ...prev, 
+        ordenesCompletadas: historialFormateado.length 
+      }));
+      
     } catch (error) {
-      console.error("Error:", error);
+      console.error("Error al obtener historial de órdenes:", error);
+      setError("No se pudo cargar el historial de órdenes");
       setHistorialOrdenes([]);
+    } finally {
       setLoadingHistorial(false);
     }
   };
 
   return (
     <div className="space-y-8">
+      {/* Mensaje de error */}
+      {error && (
+        <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg">
+          <p className="font-semibold">Error:</p>
+          <p className="text-sm">{error}</p>
+        </div>
+      )}
+
       {/* Encabezado con fondo decorativo */}
       <div className="bg-gradient-to-br from-white to-amber-50/30 rounded-2xl shadow-lg border border-amber-100/50 p-8 relative overflow-hidden">
         {/* Elementos decorativos de fondo */}
@@ -175,9 +206,9 @@ export default function DashboardPage() {
           {/* Estadísticas rápidas */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             {[
-              { title: "Órdenes Activas", value: stats.ordenesActivas, bgColor: "bg-amber-100", textColor: "text-amber-600", icon: Wrench },
-              { title: "Órdenes Pendientes", value: stats.ordenesPendientes, bgColor: "bg-amber-100", textColor: "text-amber-600", icon: Clock },
-              { title: "Órdenes Completadas", value: stats.ordenesCompletadas, bgColor: "bg-amber-100", textColor: "text-amber-600", icon: ClipboardList },
+              { title: "Órdenes Activas", value: loadingOrdenes ? "..." : stats.ordenesActivas, bgColor: "bg-amber-100", textColor: "text-amber-600", icon: Wrench },
+              { title: "Órdenes Pendientes", value: loadingOrdenes ? "..." : stats.ordenesPendientes, bgColor: "bg-amber-100", textColor: "text-amber-600", icon: Clock },
+              { title: "Órdenes Completadas", value: loadingHistorial ? "..." : stats.ordenesCompletadas, bgColor: "bg-amber-100", textColor: "text-amber-600", icon: ClipboardList },
             ].map((card, index) => {
               const IconComponent = card.icon;
               return (
@@ -244,24 +275,51 @@ export default function DashboardPage() {
 
         <div className="relative z-10">
           <h3 className="text-xl font-bold text-gray-900 mb-4">Actividad Reciente</h3>
-          <div className="space-y-4">
-            {[
-              { action: "Orden completada", item: "OT-098 - Torno CNC", time: "Hace 2 días", icon: "✅" },
-              { action: "Nueva orden asignada", item: "OT-001 - Compresor Industrial", time: "Hace 3 días", icon: "🔔" },
-              { action: "Orden en proceso", item: "OT-003 - Soldadora", time: "Hace 5 días", icon: "⚙️" },
-            ].map((activity, index) => (
-              <div key={index} className="flex items-center justify-between p-4 bg-gradient-to-r from-amber-50 to-yellow-50 rounded-lg">
-                <div className="flex items-center gap-3">
-                  <span className="text-2xl">{activity.icon}</span>
-                  <div>
-                    <p className="font-semibold text-gray-800">{activity.action}</p>
-                    <p className="text-sm text-gray-600">{activity.item}</p>
+          
+          {loadingOrdenes || loadingHistorial ? (
+            <div className="text-center py-8">
+              <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-amber-600"></div>
+              <p className="text-gray-600 mt-2">Cargando actividad...</p>
+            </div>
+          ) : (
+            <div className="space-y-4">
+              {/* Mostrar últimas órdenes completadas */}
+              {historialOrdenes.slice(0, 2).map((orden, index) => (
+                <div key={`hist-${index}`} className="flex items-center justify-between p-4 bg-gradient-to-r from-amber-50 to-yellow-50 rounded-lg">
+                  <div className="flex items-center gap-3">
+                    <span className="text-2xl">✅</span>
+                    <div>
+                      <p className="font-semibold text-gray-800">Orden completada</p>
+                      <p className="text-sm text-gray-600">{orden.numero} - {orden.maquina}</p>
+                    </div>
                   </div>
+                  <span className="text-sm text-gray-500">{orden.fechaCompletado}</span>
                 </div>
-                <span className="text-sm text-gray-500">{activity.time}</span>
-              </div>
-            ))}
-          </div>
+              ))}
+              
+              {/* Mostrar última orden activa */}
+              {ordenesTrabajo.slice(0, 1).map((orden, index) => (
+                <div key={`orden-${index}`} className="flex items-center justify-between p-4 bg-gradient-to-r from-amber-50 to-yellow-50 rounded-lg">
+                  <div className="flex items-center gap-3">
+                    <span className="text-2xl">⚙️</span>
+                    <div>
+                      <p className="font-semibold text-gray-800">
+                        {orden.estado === "Pendiente" ? "Nueva orden asignada" : "Orden en proceso"}
+                      </p>
+                      <p className="text-sm text-gray-600">{orden.numero} - {orden.maquina}</p>
+                    </div>
+                  </div>
+                  <span className="text-sm text-gray-500">{orden.fecha}</span>
+                </div>
+              ))}
+
+              {ordenesTrabajo.length === 0 && historialOrdenes.length === 0 && (
+                <div className="text-center py-8 text-gray-500">
+                  No hay actividad reciente
+                </div>
+              )}
+            </div>
+          )}
         </div>
       </div>
     </div>
