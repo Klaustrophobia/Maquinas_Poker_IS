@@ -1,0 +1,95 @@
+--- INSERT DE ROLES  
+
+INSERT INTO public.roles (id, nombre, descripcion, permisos, fecha_creacion)
+OVERRIDING SYSTEM VALUE
+VALUES
+(1, 'SuperAdmin', 'Acceso total al sistema, incluida la gestión de usuarios, permisos y configuraciones globales.',
+    '["usuarios:crear","usuarios:editar","usuarios:eliminar","roles:gestionar","configuraciones:globales"]'::json,
+    NOW());
+
+INSERT INTO public.roles (id, nombre, descripcion, permisos, fecha_creacion)
+OVERRIDING SYSTEM VALUE
+VALUES
+(2, 'Administrador', 'Gestión operativa del sistema, con acceso avanzado pero sin permisos críticos del sistema.',
+    '["usuarios:crear","usuarios:editar","reportes:ver","operaciones:gestionar"]'::json,
+    NOW());
+
+INSERT INTO public.roles (id, nombre, descripcion, permisos, fecha_creacion)
+OVERRIDING SYSTEM VALUE
+VALUES
+(3, 'Cliente', 'Usuario final con permisos limitados a su cuenta y servicios contratados.',
+    '["perfil:ver","perfil:editar","servicios:ver","soporte:crear_ticket"]'::json,
+    NOW());
+
+INSERT INTO public.roles (id, nombre, descripcion, permisos, fecha_creacion)
+OVERRIDING SYSTEM VALUE
+VALUES
+(4, 'Tecnico', 'Encargado de atender incidencias y brindar soporte técnico.',
+    '["tickets:ver","tickets:actualizar","reportes:tecnicos"]'::json,
+    NOW());
+
+
+--- INSERT DE USUARIOS
+
+INSERT INTO usuarios (nombre_usuario, contraseña, rol, correo, identificador_unico, activo)
+VALUES 
+-- SUPERADMIN
+('superadmin', '123456', 'SuperAdmin', 'superadmin@empresa.com', 'UID-SUPERADMIN-001', true),
+
+-- ADMINISTRADOR
+('admin', 'admin123', 'Administrador', 'admin@empresa.com', 'UID-ADMIN-001', true),
+
+-- TÉCNICOS
+('tecnico1', 'tec123', 'Tecnico', 'tecnico1@empresa.com', 'UID-TEC-001', true),
+('tecnico2', 'tec123', 'Tecnico', 'tecnico2@empresa.com', 'UID-TEC-002', true),
+('tecnico3', 'tec123', 'Tecnico', 'tecnico3@empresa.com', 'UID-TEC-003', true),
+
+-- CLIENTES
+('cliente1', 'cliente123', 'Cliente', 'cliente1@correo.com', 'UID-CLI-001', true),
+('cliente2', 'cliente123', 'Cliente', 'cliente2@correo.com', 'UID-CLI-002', true),
+('cliente3', 'cliente123', 'Cliente', 'cliente3@correo.com', 'UID-CLI-003', true),
+('cliente4', 'cliente123', 'Cliente', 'cliente4@correo.com', 'UID-CLI-004', true),
+('cliente5', 'cliente123', 'Cliente', 'cliente5@correo.com', 'UID-CLI-005', true);
+
+
+-- INSERT DE MAQUINAS
+
+INSERT INTO maquinas (nombre, tipo, estado, ubicacion)
+VALUES
+('Poker Pro 3000', 'Poker', 'Funcionando', 'Casino I'),
+('Royal Flush X', 'Poker', 'Funcionando', 'Casino II'),
+('Ace High 500', 'Poker', 'Funcionando', 'Casino III'),
+('Jackpot King', 'Poker', 'Funcionando', 'Casino I'),
+('Lucky Seven', 'Poker', 'Funcionando', 'Casino II'),
+('Diamond Deluxe', 'Poker', 'Funcionando', 'Casino III'),
+('Mega Spin 2000', 'Poker', 'Funcionando', 'Casino II'),
+('Fortune Wheel', 'Poker', 'Funcionando', 'Casino III'),
+('Blackjack Elite', 'Poker', 'Funcionando', 'Casino I'),
+('Queen of Hearts', 'Poker', 'Funcionando', 'Casino II');
+
+
+-- INSERT DE PROVEEDORES
+INSERT INTO proveedores(nombre, informacion_contacto, direccion, fecha_creacion)
+VALUES 
+('Proveedor PokerTech', 'contacto@pokertech.com | +504 9434-5678', 'La arboleada', now()),
+('Proveedor CardMachines', 'ventas@cardmachines.com | +504 9345-6789', 'Los dolores', now()),
+('Proveedor RoyalGaming', 'info@royalgaming.com | +504 9456-7890', 'El Pedregal', now()),
+('Proveedor LuckySlots', 'info@luckyslots.com | +504 3567-8901', 'Los llanos', now()),
+('Proveedor SpinMasters', 'info@spinmasters.com | +504 3678-9012', 'La montaña', now());
+
+
+-- INSERT DE REPUESTOS
+
+INSERT INTO repuestos(nombre, proveedor_id, cantidad, ubicacion, estado)
+VALUES 
+('Tornillo M3', 1, 100, 'Estante A1', 'Disponible'),
+('Tornillo M4', 1, 80, 'Estante A2', 'Disponible'),
+('Fuente de Poder 500W', 2, 10, 'Bodega B1', 'Disponible'),
+('Disipador CPU', 2, 15, 'Bodega B2', 'Disponible'),
+('Ventilador 80mm', 1, 20, 'Estante C1', 'Disponible'),
+('Pantalla LCD 15"', 3, 5, 'Bodega C2', 'Disponible'),
+('Placa de Circuito', 3, 8, 'Bodega D1', 'Disponible'),
+('Botón Start', 2, 25, 'Estante D2', 'Disponible'),
+('Cable de Alimentación', 1, 50, 'Estante E1', 'Disponible'),
+('Tarjeta de Red', 3, 12, 'Bodega E2', 'Disponible');
+
