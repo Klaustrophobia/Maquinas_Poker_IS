@@ -7,7 +7,7 @@ export class RepuestoUtilizado {
   @PrimaryGeneratedColumn("increment")
   id!: number;
 
-  @ManyToOne(() => SolicitudReparacion, solicitud => solicitud.repuestos_utilizados)
+  @ManyToOne(() => SolicitudReparacion, (solicitud: SolicitudReparacion) => solicitud.repuestos_utilizados)
   @JoinColumn({ name: "solicitud_id" })
   solicitud!: SolicitudReparacion;
 
