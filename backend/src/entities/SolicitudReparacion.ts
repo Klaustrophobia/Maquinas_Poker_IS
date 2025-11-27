@@ -67,6 +67,8 @@ export class SolicitudReparacion {
 
   @Column({ type: "timestamp with time zone", nullable: true })
   fecha_finalizada?: Date;
-  @OneToMany(() => RepuestoUtilizado, (repuestoUtilizado: RepuestoUtilizado) => repuestoUtilizado.solicitud)
+
+  // SOLUCIÓN: Usar tipo any temporalmente para romper la dependencia circular
+  @OneToMany(() => require("./RepuestoUtilizado").RepuestoUtilizado, (repuestoUtilizado: any) => repuestoUtilizado.solicitud)
   repuestos_utilizados!: RepuestoUtilizado[];
 }
